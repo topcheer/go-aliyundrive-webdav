@@ -398,49 +398,24 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 		fmt.Println("创建文件出错", string(rs))
 	}
 	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, false
-	//正确返回占星显示
-	//
-	//	{
-	//		"parent_file_id": "root",
-	//		"part_info_list": [
-	//	{
-	//		"part_number": 1,
-	//		"upload_url": "https://bj29.cn-beijing.data.alicloudccp.com/igQPcuUn%2F1662258%2F613a1091919bb599f4ac4917bfe16af6b7066795%2F613a10919ab3804e88e846ee9ea459de51d8f58d?partNumber=1&uploadId=BD8449BB161A4F54A1252E3B5B121641&x-oss-access-key-id=LTAIsE5mAn2F493Q&x-oss-expires=1631198881&x-oss-signature=wp2WCgyfqxZhJH%2BsPaw6XASRKXHa92p3e9NOjcN4Ui8%3D&x-oss-signature-version=OSS2",
-	//		"internal_upload_url": "http://ccp-bj29-bj-1592982087.oss-cn-beijing-internal.aliyuncs.com/igQPcuUn%2F1662258%2F613a1091919bb599f4ac4917bfe16af6b7066795%2F613a10919ab3804e88e846ee9ea459de51d8f58d?partNumber=1&uploadId=BD8449BB161A4F54A1252E3B5B121641&x-oss-access-key-id=LTAIsE5mAn2F493Q&x-oss-expires=1631198881&x-oss-signature=wp2WCgyfqxZhJH%2BsPaw6XASRKXHa92p3e9NOjcN4Ui8%3D&x-oss-signature-version=OSS2",
-	//		"content_type": ""
-	//	}
-	//],
-	//	"upload_id": "BD8449BB161A4F54A1252E3B5B121641",
-	//	"rapid_upload": false,
-	//	"type": "file",
-	//	"file_id": "613a1091919bb599f4ac4917bfe16af6b7066795",
-	//	"domain_id": "bj29",
-	//	"drive_id": "1662258",
-	//	"file_name": "photo_1614943806132229.jpg",
-	//	"encrypt_mode": "none",
-	//	"location": "cn-beijing"
-	//	}
 
-	//return false
 }
 func UploadFile(url string, token string, data []byte) {
-	rs := net.Put(url, token, data)
-	fmt.Println(string(rs))
+	for i := 0; i < 3; i++ {
+		rs := net.Put(url, token, data)
+		if len(rs) == 0 {
+			return
+		} else {
+			fmt.Println("Upload Error: ", rs, " Retrying")
+		}
+	}
 }
 func UploadFileComplete(token string, driveId string, uploadId string, fileId string, parentId string) bool {
-	//	private String drive_id;
-	//	private String file_id;
-	//	private String upload_id;
-	//	{
-	//		"requests": ,
-	//	"resource": "file"
-	//	}
-	createData := `{"drive_id": "` + driveId + `","file_id": "` + fileId + `","upload_id":"` + uploadId + `"}`
+
+	createData := `{"drive_id": "` + driveId + `","file_id": "` + fileId + `","upload_id": "` + uploadId + `"}`
 
 	rs := net.Post(model.APIFILECOMPLETE, token, []byte(createData))
-	fmt.Println(string(rs))
-	//正确返回占星显示
-	//	}
+	fmt.Println("Upload Result:", gjson.GetBytes(rs, "file_id").Str, gjson.GetBytes(rs, "name").Str, gjson.GetBytes(rs, "size").Str)
 	cache.GoCache.Delete(parentId)
 
 	return false

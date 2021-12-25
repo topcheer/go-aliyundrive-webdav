@@ -375,6 +375,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	if r.ContentLength == 0 {
 		return http.StatusCreated, nil
 	}
+	fmt.Println("Uploading ", reqPath, r.ContentLength)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
 	if fileId != "" {
 		cache.GoCache.Set("FID_"+reqPath, fileId, -1)
@@ -413,11 +414,14 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
+		fmt.Println("Creating Directory", reqPath)
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
 			cache.GoCache.Set("parent"+reqPath, dir.ParentFileId, -1)
 			cache.GoCache.Delete(parentFileId)
+		} else {
+			fmt.Println("Create Directory Failed", reqPath)
 		}
 	}
 
