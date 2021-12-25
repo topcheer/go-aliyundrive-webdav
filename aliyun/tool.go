@@ -159,6 +159,17 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		UploadFile(uploadUrl[i].Str, token, dataByte)
 
 	}
+	errc := create.Close()
+	if err != nil {
+		fmt.Println(errc)
+		return ""
+	}
+	errr := os.Remove(create.Name())
+	if errr != nil {
+		fmt.Println(errr)
+		return ""
+	}
+
 	fmt.Println("uploading done, elapsed ", time.Now().Sub(bg).String())
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)
