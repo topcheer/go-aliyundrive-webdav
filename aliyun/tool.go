@@ -177,7 +177,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		idx2 := strings.Index(uri[idx:], "&")
 		exp := uri[idx : idx2+idx]
 		expire, _ := strconv.ParseInt(exp, 10, 64)
-		fmt.Println(exp)
+		fmt.Println("   Now:", time.Now().UnixMilli()/1000)
+		fmt.Println("Expire:", exp)
 		if time.Now().UnixMilli()/1000 < expire {
 			fmt.Println("Uploading URL expired, renewing", uploadId, uploadFileId, fileName)
 			uploadUrl = GetUploadUrls(token, driveId, uploadFileId, uploadId, int(count))
