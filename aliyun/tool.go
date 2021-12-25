@@ -171,20 +171,19 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("err reading from temp file", err, create.Name(), fileName, uploadId)
 			return ""
 		}
+		//check if upload url has expired
+		uri := uploadUrl[i].Str
+		idx := strings.Index(uri, "x-oss-expires=") + len("x-oss-expires=")
+		idx2 := strings.Index(uri[idx:], "&")
+		exp := uri[idx : idx2+idx]
+		expire, _ := strconv.ParseInt(exp, 10, 64)
+		fmt.Println(exp)
+		if time.Now().UnixMilli()/1000 < expire {
+			uploadUrl = GetUploadUrls(token, driveId, uploadFileId, uploadId, int(count))
+		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
 
 	}
-	errc := create.Close()
-	if err != nil {
-		fmt.Println(errc)
-		return ""
-	}
-	errr := os.Remove(create.Name())
-	if errr != nil {
-		fmt.Println(errr)
-		return ""
-	}
-
 	fmt.Println("uploading done, elapsed ", time.Now().Sub(bg).String())
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)

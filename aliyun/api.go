@@ -467,3 +467,15 @@ func GetBoxSize(token string) (string, string) {
 	return gjson.GetBytes(body, "personal_space_info.total_size").String(), gjson.GetBytes(body, "personal_space_info.used_size").String()
 
 }
+func GetUploadUrls(token string, driveId string, fileId string, uploadId string, length int) []gjson.Result {
+	var partStr string = "["
+	for i := 0; i < length; i++ {
+		partStr += `{"part_number":` + strconv.Itoa(i+1) + `},`
+	}
+	partStr = partStr[:len(partStr)-1]
+	partStr += "]"
+	uploadRequest := `{"drive_id":"` + driveId + `","part_info_list":` + partStr + `,"file_id":"` + fileId + `","upload_id":"` + uploadId + `"}`
+	rs := net.Post(model.APIFILEUPLOADURL, token, []byte(uploadRequest))
+	fmt.Println(string(rs))
+	return gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
+}
