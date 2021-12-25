@@ -52,7 +52,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var uploadUrl []gjson.Result
 	var uploadId string
 	var uploadFileId string
-	var create, err = os.Create(uuid.New().String())
+	var uid = uuid.New().String()
+	var create, err = os.Create(uid)
 	if err != nil {
 		return ""
 	}
@@ -121,6 +122,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			return uploadFileId
 		}
 		create.Write(readbytes)
+		create.Close()
 		readbytes = nil
 	} else {
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
@@ -132,6 +134,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var bg time.Time = time.Now()
 	stat, err := create.Stat()
 	if err != nil {
+		fmt.Println(err)
 		return ""
 	}
 	if stat.Size() != r.ContentLength {
@@ -140,8 +143,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		if err != nil {
 			return ""
 		}
+		create.Close()
 	}
 	fmt.Println("Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
+	create, _ = os.OpenFile(uid, os.O_RDONLY, 666)
 	for i := 0; i < int(count); i++ {
 		var dataByte []byte
 		if int(count) == 1 {
