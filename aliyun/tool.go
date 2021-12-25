@@ -129,8 +129,6 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("Rapid Upload ", fileName)
 			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 			cache.GoCache.Delete(parentId)
-			create.Close()
-			os.Remove(create.Name())
 			return uploadFileId
 		}
 		create.Write(readbytes)
