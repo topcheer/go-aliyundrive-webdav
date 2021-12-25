@@ -122,7 +122,6 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			return uploadFileId
 		}
 		create.Write(readbytes)
-		create.Close()
 		readbytes = nil
 	} else {
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
@@ -141,6 +140,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		buff, _ := ioutil.ReadAll(r.Body)
 		_, err := create.Write(buff)
 		if err != nil {
+			fmt.Println(err, fileName, create.Name())
 			return ""
 		}
 		create.Close()
