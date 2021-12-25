@@ -406,7 +406,7 @@ func UploadFile(url string, token string, data []byte) {
 		if len(rs) == 0 {
 			return
 		} else {
-			fmt.Println("Upload Error: ", rs, " Retrying")
+			fmt.Println("Upload Error: ", string(rs), " Retrying")
 		}
 	}
 }

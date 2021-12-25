@@ -48,7 +48,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var flashUpload bool = false
 	//status code
 	var code int
-	var readbytes []byte
+	var readBytes []byte
 	var uploadUrl []gjson.Result
 	var uploadId string
 	var uploadFileId string
@@ -78,7 +78,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("error reading file", fileName)
 			return ""
 		}
-		readbytes = append(readbytes, preHashDataBytes...)
+		readBytes = append(readBytes, preHashDataBytes...)
 		h := sha1.New()
 		h.Write(preHashDataBytes)
 		//检查是否可以极速上传，逻辑如下
@@ -99,7 +99,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			end := math.Min(float64(offset+8), float64(r.ContentLength))
 			var offsetBytes []byte
 			if end < 1024 {
-				offsetBytes = readbytes[offset:int64(end)]
+				offsetBytes = readBytes[offset:int64(end)]
 				proof = utils.GetProof(offsetBytes)
 			} else {
 				//先读取到offset end位置的所有字节，由于上面已经读取1024，这里剪掉
@@ -109,21 +109,21 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 					fmt.Println(err2)
 					return ""
 				}
-				readbytes = append(readbytes, offsetBytes...)
+				readBytes = append(readBytes, offsetBytes...)
 				offsetBytes = offsetBytes[offset-1024 : int64(end)-1024]
 				proof = utils.GetProof(offsetBytes)
 			}
 			flashUpload = true
 		}
-		buff := make([]byte, r.ContentLength-int64(len(readbytes)))
+		buff := make([]byte, r.ContentLength-int64(len(readBytes)))
 		_, err3 := io.ReadFull(r.Body, buff)
 		if err3 != nil {
 			fmt.Println(err3)
 			return ""
 		}
 		h2 := sha1.New()
-		readbytes = append(readbytes, buff...)
-		h2.Write(readbytes)
+		readBytes = append(readBytes, buff...)
+		h2.Write(readBytes)
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), strings.ToUpper(hex.EncodeToString(h2.Sum(nil))), proof, flashUpload)
 		if flashUpload && (uploadFileId != "") {
 			fmt.Println("Rapid Upload ", fileName)
@@ -131,8 +131,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			cache.GoCache.Delete(parentId)
 			return uploadFileId
 		}
-		create.Write(readbytes)
-		readbytes = nil
+		create.Write(readBytes)
+		readBytes = nil
 	} else {
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
 	}
