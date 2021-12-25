@@ -57,8 +57,18 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	if err != nil {
 		return ""
 	}
-	defer create.Close()
-
+	defer func(create *os.File) {
+		err := create.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(create)
+	defer func(name string) {
+		err := os.Remove(name)
+		if err != nil {
+			fmt.Println(err, name)
+		}
+	}(create.Name())
 	//大于150K小于1G的才开启闪传，文件太大会导致内存溢出
 	//由于webdav协议的局限性，无法预先计算文件校验hash
 	if r.ContentLength > 1024*150 && r.ContentLength <= 1024*1024*1024*25 {
@@ -119,6 +129,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("Rapid Upload ", fileName)
 			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 			cache.GoCache.Delete(parentId)
+			create.Close()
+			os.Remove(create.Name())
 			return uploadFileId
 		}
 		create.Write(readbytes)
