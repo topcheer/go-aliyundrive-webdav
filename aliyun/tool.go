@@ -1,19 +1,21 @@
 package aliyun
 
 import (
-	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"go-aliyun-webdav/aliyun/cache"
 	"go-aliyun-webdav/aliyun/model"
 	"go-aliyun-webdav/aliyun/net"
 	"go-aliyun-webdav/utils"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -50,6 +52,12 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var uploadUrl []gjson.Result
 	var uploadId string
 	var uploadFileId string
+	var create, err = os.Create(uuid.New().String())
+	if err != nil {
+		return ""
+	}
+	defer create.Close()
+
 	//大于150K小于1G的才开启闪传，文件太大会导致内存溢出
 	//由于webdav协议的局限性，无法预先计算文件校验hash
 	if r.ContentLength > 1024*150 && r.ContentLength <= 1024*1024*1024 {
@@ -119,6 +127,13 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		return ""
 	}
 	var bg time.Time = time.Now()
+	if len(readbytes) == int(r.ContentLength) {
+		create.Write(readbytes)
+		readbytes = nil
+	} else {
+		buff, _ := ioutil.ReadAll(r.Body)
+		create.Write(buff)
+	}
 	for i := 0; i < int(count); i++ {
 		var dataByte []byte
 		if int(count) == 1 {
@@ -128,16 +143,12 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		} else {
 			dataByte = make([]byte, DEFAULT)
 		}
-		_, err := io.ReadFull(r.Body, dataByte)
+		_, err := io.ReadFull(create, dataByte)
 		if err != nil {
-			fmt.Println("err reading from request body", err, fileName, uploadId)
-			_, err := io.ReadFull(bytes.NewReader(readbytes), dataByte)
-			if err != nil {
-				return ""
-			}
+			fmt.Println("err reading from temp file", err, create.Name(), uploadId)
+			return ""
 		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
-		fmt.Println("multithread upload, thread #", i)
 
 	}
 	fmt.Println("uploading done, elapsed ", time.Now().Sub(bg).String())
