@@ -368,7 +368,7 @@ func UpdateFileFolder(token string, driveId string, fileName string, parentFileI
 	return false
 }
 
-func UpdateFileFile(token string, driveId string, fileName string, parentFileId string, size string, length int, contentHash string, proof string, flashUpload bool) ([]gjson.Result, string, string) {
+func UpdateFileFile(token string, driveId string, fileName string, parentFileId string, size string, length int, contentHash string, proof string, flashUpload bool) ([]gjson.Result, string, string, bool) {
 
 	if len(parentFileId) == 0 {
 		parentFileId = "root"
@@ -391,13 +391,13 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 	rs := net.Post(model.APIFILEUPLOAD, token, []byte(createData))
 	rapidUpload := gjson.GetBytes(rs, "rapid_upload").Bool()
 	if rapidUpload == true {
-		return nil, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str
+		return nil, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, true
 	}
 	urlArr := gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
 	if len(urlArr) == 0 {
 		fmt.Println("创建文件出错", string(rs))
 	}
-	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str
+	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, false
 	//正确返回占星显示
 	//
 	//	{

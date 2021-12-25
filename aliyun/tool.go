@@ -113,27 +113,35 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		h2 := sha1.New()
 		readbytes = append(readbytes, buff...)
 		h2.Write(readbytes)
-		uploadUrl, uploadId, uploadFileId = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), strings.ToUpper(hex.EncodeToString(h2.Sum(nil))), proof, flashUpload)
+		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), strings.ToUpper(hex.EncodeToString(h2.Sum(nil))), proof, flashUpload)
+		if flashUpload && (uploadFileId != "") {
+			fmt.Println("Rapid Upload ", fileName)
+			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
+			cache.GoCache.Delete(parentId)
+			return uploadFileId
+		}
+		create.Write(readbytes)
+		readbytes = nil
 	} else {
-		uploadUrl, uploadId, uploadFileId = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
+		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
 	}
 
-	if flashUpload && (uploadFileId != "") {
-		//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
-		cache.GoCache.Delete(parentId)
-		return uploadFileId
-	}
 	if len(uploadUrl) == 0 {
 		return ""
 	}
 	var bg time.Time = time.Now()
-	if len(readbytes) == int(r.ContentLength) {
-		create.Write(readbytes)
-		readbytes = nil
-	} else {
-		buff, _ := ioutil.ReadAll(r.Body)
-		create.Write(buff)
+	stat, err := create.Stat()
+	if err != nil {
+		return ""
 	}
+	if stat.Size() != r.ContentLength {
+		buff, _ := ioutil.ReadAll(r.Body)
+		_, err := create.Write(buff)
+		if err != nil {
+			return ""
+		}
+	}
+	fmt.Println("Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
 	for i := 0; i < int(count); i++ {
 		var dataByte []byte
 		if int(count) == 1 {
@@ -145,7 +153,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		}
 		_, err := io.ReadFull(create, dataByte)
 		if err != nil {
-			fmt.Println("err reading from temp file", err, create.Name(), uploadId)
+			fmt.Println("err reading from temp file", err, create.Name(), fileName, uploadId)
 			return ""
 		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
