@@ -143,10 +143,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		return ""
 	}
 
-	fmt.Println("Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
+	fmt.Println("📣Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
 	intermediateFile.Seek(0, 0)
 	for i := 0; i < int(count); i++ {
-		fmt.Println("Uploading part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength)
+		fmt.Println("📣Uploading part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength)
 		pstart := time.Now()
 		var dataByte []byte
 		if int(count) == 1 {
@@ -158,7 +158,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		}
 		_, err := io.ReadFull(intermediateFile, dataByte)
 		if err != nil {
-			fmt.Println("err reading from temp file", err, intermediateFile.Name(), fileName, uploadId)
+			fmt.Println("❌err reading from temp file", err, intermediateFile.Name(), fileName, uploadId)
 			return ""
 		}
 		//check if upload url has expired
@@ -168,20 +168,20 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		exp := uri[idx : idx2+idx]
 		expire, _ := strconv.ParseInt(exp, 10, 64)
 		if time.Now().UnixMilli()/1000 > expire {
-			fmt.Println("   Now:", time.Now().UnixMilli()/1000)
-			fmt.Println("Expire:", exp)
-			fmt.Println("Uploading URL expired, renewing", uploadId, uploadFileId, fileName)
+			fmt.Println("📣   Now:", time.Now().UnixMilli()/1000)
+			fmt.Println("📣Expire:", exp)
+			fmt.Println("📣Uploading URL expired, renewing", uploadId, uploadFileId, fileName)
 			uploadUrl = GetUploadUrls(token, driveId, uploadFileId, uploadId, int(count))
 			if len(uploadUrl) == 0 {
-				fmt.Println("Renew Uploading URL failed", fileName, uploadId, uploadFileId, "cancel upload")
+				fmt.Println("❌Renew Uploading URL failed", fileName, uploadId, uploadFileId, "cancel upload")
 				return ""
 			}
 		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
-		fmt.Println("Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
+		fmt.Println("📣Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
 
 	}
-	fmt.Println("Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
+	fmt.Println("🐲Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)
 	return uploadFileId
