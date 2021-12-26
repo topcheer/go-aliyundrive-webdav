@@ -170,6 +170,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("Expire:", exp)
 			fmt.Println("Uploading URL expired, renewing", uploadId, uploadFileId, fileName)
 			uploadUrl = GetUploadUrls(token, driveId, uploadFileId, uploadId, int(count))
+			if len(uploadUrl) == 0 {
+				fmt.Println("Renew Uploading URL failed", fileName, uploadId, uploadFileId, "cancel upload")
+				return ""
+			}
 		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
 

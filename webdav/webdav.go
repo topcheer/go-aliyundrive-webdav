@@ -365,6 +365,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
 					fmt.Println("Error: can't find parent folder")
+					return http.StatusBadRequest, errors.New("parent folder does not exist,please create first")
 				} else {
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 				}
@@ -379,6 +380,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
 	if fileId != "" {
 		cache.GoCache.Set("FID_"+reqPath, fileId, -1)
+	} else {
+		fmt.Println("Upload failed", reqPath)
+		return http.StatusBadRequest, errors.New("Upload failed")
 	}
 	return http.StatusCreated, nil
 }
@@ -406,10 +410,10 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(pi, model.ListModel{}) {
-				return http.StatusBadRequest, errors.New("parent folder does not exist")
+				return http.StatusBadGateway, errors.New("parent folder does not exist")
 			}
 			if pi.Type == "file" {
-				return http.StatusBadRequest, errors.New("parent need to be a folder")
+				return http.StatusBadGateway, errors.New("parent need to be a folder")
 			}
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
@@ -420,8 +424,10 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
 			cache.GoCache.Set("parent"+reqPath, dir.ParentFileId, -1)
 			cache.GoCache.Delete(parentFileId)
+			fmt.Println("Directory created", reqPath)
 		} else {
 			fmt.Println("Create Directory Failed", reqPath)
+			return http.StatusBadGateway, errors.New("create directory failed: " + reqPath)
 		}
 	}
 
