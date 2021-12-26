@@ -396,7 +396,7 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 	}
 	urlArr := gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
 	if len(urlArr) == 0 {
-		fmt.Println("创建文件出错", string(rs))
+		fmt.Println("❌  创建文件出错", string(rs))
 	}
 	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, false
 
@@ -408,7 +408,7 @@ func UploadFile(url string, token string, data []byte) bool {
 		if len(rs) == 0 {
 			return true
 		} else {
-			fmt.Println("❌Upload Error: ", string(rs), " Retrying in 5 seconds")
+			fmt.Println("❌  Upload Error: ", string(rs), " Retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
 		}
 	}
@@ -419,7 +419,7 @@ func UploadFileComplete(token string, driveId string, uploadId string, fileId st
 	createData := `{"drive_id": "` + driveId + `","file_id": "` + fileId + `","upload_id": "` + uploadId + `"}`
 
 	rs := net.Post(model.APIFILECOMPLETE, token, []byte(createData))
-	fmt.Println("Upload Result:", gjson.GetBytes(rs, "file_id").Str, gjson.GetBytes(rs, "name").Str, gjson.GetBytes(rs, "size").Str)
+	fmt.Println("⬆️  Upload Result:", gjson.GetBytes(rs, "file_id").Str, gjson.GetBytes(rs, "name").Str, gjson.GetBytes(rs, "size").Str)
 	cache.GoCache.Delete(parentId)
 
 	return false

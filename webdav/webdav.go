@@ -306,12 +306,14 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
 		if fi.Name == strArr[len(strArr)-1] {
 			aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
+			fmt.Println("🕺  删除", reqPath)
 			cache.GoCache.Delete("FID_" + reqPath)
 		} else {
 			fi, _, walkerr := aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, "root")
 			if walkerr == nil {
 				if fi.Name == strArr[len(strArr)-1] {
 					aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
+					fmt.Println("🕺  删除", reqPath)
 					cache.GoCache.Delete("FID_" + reqPath)
 				}
 			}
@@ -364,7 +366,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			fi, _, walkerr = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, parentFileId)
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
-					fmt.Println("Error: can't find parent folder")
+					fmt.Println("🔥  Error: can't find parent folder", reqPath)
 					return http.StatusBadRequest, errors.New("parent folder does not exist,please create first")
 				} else {
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
@@ -376,12 +378,12 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	if r.ContentLength == 0 {
 		return http.StatusCreated, nil
 	}
-	fmt.Println("Uploading ", reqPath, r.ContentLength)
+	fmt.Println("⬆️  Uploading ", reqPath, r.ContentLength)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
 	if fileId != "" {
 		cache.GoCache.Set("FID_"+reqPath, fileId, -1)
 	} else {
-		fmt.Println("Upload failed", reqPath)
+		fmt.Println("❌  Upload failed", reqPath)
 		return http.StatusBadRequest, errors.New("Upload failed")
 	}
 	return http.StatusCreated, nil
@@ -418,15 +420,15 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
-		fmt.Println("Creating Directory", reqPath)
+		fmt.Println("📁  Creating Directory", reqPath)
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
 			cache.GoCache.Set("parent"+reqPath, dir.ParentFileId, -1)
 			cache.GoCache.Delete(parentFileId)
-			fmt.Println("Directory created", reqPath)
+			fmt.Println("✅  Directory created", reqPath)
 		} else {
-			fmt.Println("Create Directory Failed", reqPath)
+			fmt.Println("❌  Create Directory Failed", reqPath)
 			return http.StatusBadGateway, errors.New("create directory failed: " + reqPath)
 		}
 	}
