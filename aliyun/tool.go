@@ -177,7 +177,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 				return ""
 			}
 		}
-		UploadFile(uploadUrl[i].Str, token, dataByte)
+		if ok := UploadFile(uploadUrl[i].Str, token, dataByte); !ok {
+			fmt.Println("❌Upload part failed", fileName, "part", i+1, "cancel upload")
+			return ""
+		}
 		fmt.Println("📣Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
 
 	}

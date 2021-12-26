@@ -401,17 +401,18 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, false
 
 }
-func UploadFile(url string, token string, data []byte) {
+func UploadFile(url string, token string, data []byte) bool {
 	//最多试5次
 	for i := 0; i < 5; i++ {
 		rs := net.Put(url, token, data)
 		if len(rs) == 0 {
-			return
+			return true
 		} else {
 			fmt.Println("❌Upload Error: ", string(rs), " Retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
 		}
 	}
+	return false
 }
 func UploadFileComplete(token string, driveId string, uploadId string, fileId string, parentId string) bool {
 
