@@ -14,6 +14,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -34,9 +35,17 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	if r.ContentLength > 0 {
 		count = math.Ceil(float64(r.ContentLength) / float64(DEFAULT))
 	} else {
-		//dataTemp, _ := io.ReadAll(r.Body)
-		//r.ContentLength = int64(len(dataTemp))
-		return ""
+		//空文件处理
+		sha1_0 := "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+		_, _, fileId, _ := UpdateFileFile(token, driveId, fileName, parentId, "0", 1, sha1_0, "", true)
+		if fileId != "" {
+			fmt.Println("0⃣️  Created zero byte file", fileName)
+			cache.GoCache.Delete(parentId)
+			return fileId
+		} else {
+			fmt.Println("❌  Unable to create zero byte file", fileName)
+			return ""
+		}
 	}
 
 	//proof 偏移量
@@ -51,7 +60,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var uploadId string
 	var uploadFileId string
 	var uid = uuid.New().String()
-	var intermediateFile, err = os.Create(uid)
+	var intermediateFile, err = os.Create(uid + url.QueryEscape(strings.ReplaceAll(r.URL.Path, "/", "_")))
 	if err != nil {
 		return ""
 	}
@@ -101,6 +110,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			offset = int64(f % uint64(r.ContentLength))
 			end := math.Min(float64(offset+8), float64(r.ContentLength))
 			off := make([]byte, int64(end)-offset)
+			_, errS := intermediateFile.Seek(0, 0)
+			if errS != nil {
+				return ""
+			}
 			_, offerr := intermediateFile.ReadAt(off, offset)
 			if offerr != nil {
 				fmt.Println("Can't calculate proof", offerr)
@@ -127,8 +140,6 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			cache.GoCache.Delete(parentId)
 			return uploadFileId
 		}
-		//intermediateFile.Write(readBytes)
-		//readBytes = nil
 	} else {
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
 	}

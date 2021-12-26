@@ -350,9 +350,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 		}
 	}
 
-	if r.ContentLength == 0 {
-		return http.StatusCreated, nil
-	}
+	//if r.ContentLength == 0 {
+	//	return http.StatusCreated, nil
+	//}
 	fmt.Println("⬆️  Uploading ", reqPath, r.ContentLength)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
 	if fileId != "" {
