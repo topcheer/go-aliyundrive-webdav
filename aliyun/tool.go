@@ -175,6 +175,9 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			if len(uploadUrl) == 0 {
 				fmt.Println("❌  Renew Uploading URL failed", fileName, uploadId, uploadFileId, "cancel upload")
 				return ""
+			} else {
+				//fmt.Println("ℹ️  从头再来 💃🤔⬆️‼️ Resetting upload part")
+				//i = 0
 			}
 		}
 		if ok := UploadFile(uploadUrl[i].Str, token, dataByte); !ok {
