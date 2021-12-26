@@ -12,7 +12,6 @@ import (
 	"go-aliyun-webdav/aliyun/net"
 	"go-aliyun-webdav/utils"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -48,12 +47,11 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var flashUpload bool = false
 	//status code
 	var code int
-	var readBytes []byte
 	var uploadUrl []gjson.Result
 	var uploadId string
 	var uploadFileId string
 	var uid = uuid.New().String()
-	var create, err = os.Create(uid)
+	var intermediateFile, err = os.Create(uid)
 	if err != nil {
 		return ""
 	}
@@ -62,23 +60,28 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		if err != nil {
 			fmt.Println(err)
 		}
-	}(create)
+	}(intermediateFile)
 	defer func(name string) {
 		err := os.Remove(name)
 		if err != nil {
 			fmt.Println(err, name)
 		}
-	}(create.Name())
-	//大于150K小于1G的才开启闪传，文件太大会导致内存溢出
-	//由于webdav协议的局限性，无法预先计算文件校验hash
+	}(intermediateFile.Name())
+	//写入中间文件
+	_, copyError := io.Copy(intermediateFile, r.Body)
+	if copyError != nil {
+		fmt.Println("Error creating intermediate file ", fileName, intermediateFile.Name(), r.ContentLength)
+		return ""
+	}
+	//大于150K小于25G的才开启闪传
+	//由于webdav协议的局限性，使用中间文件，服务求要有足够的存储，否则会将硬盘撑爆掉
 	if r.ContentLength > 1024*150 && r.ContentLength <= 1024*1024*1024*25 {
 		preHashDataBytes := make([]byte, 1024)
-		_, err := io.ReadFull(r.Body, preHashDataBytes)
+		_, err := intermediateFile.ReadAt(preHashDataBytes, 0)
 		if err != nil {
-			fmt.Println("error reading file", fileName)
+			fmt.Println("error reading file", intermediateFile.Name(), err)
 			return ""
 		}
-		readBytes = append(readBytes, preHashDataBytes...)
 		h := sha1.New()
 		h.Write(preHashDataBytes)
 		//检查是否可以极速上传，逻辑如下
@@ -97,42 +100,35 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			}
 			offset = int64(f % uint64(r.ContentLength))
 			end := math.Min(float64(offset+8), float64(r.ContentLength))
-			var offsetBytes []byte
-			if end < 1024 {
-				offsetBytes = readBytes[offset:int64(end)]
-				proof = utils.GetProof(offsetBytes)
-			} else {
-				//先读取到offset end位置的所有字节，由于上面已经读取1024，这里剪掉
-				offsetBytes = make([]byte, int64(end-1024))
-				_, err2 := io.ReadFull(r.Body, offsetBytes)
-				if err2 != nil {
-					fmt.Println(err2)
-					return ""
-				}
-				readBytes = append(readBytes, offsetBytes...)
-				offsetBytes = offsetBytes[offset-1024 : int64(end)-1024]
-				proof = utils.GetProof(offsetBytes)
+			off := make([]byte, int64(end)-offset)
+			_, offerr := intermediateFile.ReadAt(off, offset)
+			if offerr != nil {
+				fmt.Println("Can't calculate proof", offerr)
+				return ""
 			}
+			proof = utils.GetProof(off)
 			flashUpload = true
 		}
-		buff := make([]byte, r.ContentLength-int64(len(readBytes)))
-		_, err3 := io.ReadFull(r.Body, buff)
-		if err3 != nil {
-			fmt.Println(err3)
+		_, seekError := intermediateFile.Seek(0, 0)
+		if seekError != nil {
+			fmt.Println("回不去了...", seekError, fileName, intermediateFile.Name())
 			return ""
 		}
 		h2 := sha1.New()
-		readBytes = append(readBytes, buff...)
-		h2.Write(readBytes)
+		_, sha1Error := io.Copy(h2, intermediateFile)
+		if sha1Error != nil {
+			fmt.Println("Error calculate SHA1", sha1Error, fileName, intermediateFile.Name(), r.ContentLength)
+			return ""
+		}
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), strings.ToUpper(hex.EncodeToString(h2.Sum(nil))), proof, flashUpload)
 		if flashUpload && (uploadFileId != "") {
-			fmt.Println("Rapid Upload ", fileName)
+			fmt.Println("Rapid Upload ", fileName, r.ContentLength)
 			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 			cache.GoCache.Delete(parentId)
 			return uploadFileId
 		}
-		create.Write(readBytes)
-		readBytes = nil
+		//intermediateFile.Write(readBytes)
+		//readBytes = nil
 	} else {
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), "", "", false)
 	}
@@ -141,22 +137,14 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		return ""
 	}
 	var bg time.Time = time.Now()
-	stat, err := create.Stat()
+	stat, err := intermediateFile.Stat()
 	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
-	if stat.Size() != r.ContentLength {
-		buff, _ := ioutil.ReadAll(r.Body)
-		_, err := create.Write(buff)
-		if err != nil {
-			fmt.Println(err, fileName, create.Name())
-			return ""
-		}
-		create.Close()
-	}
+
 	fmt.Println("Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
-	create, _ = os.OpenFile(uid, os.O_RDONLY, 666)
+	intermediateFile.Seek(0, 0)
 	for i := 0; i < int(count); i++ {
 		var dataByte []byte
 		if int(count) == 1 {
@@ -166,9 +154,9 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		} else {
 			dataByte = make([]byte, DEFAULT)
 		}
-		_, err := io.ReadFull(create, dataByte)
+		_, err := io.ReadFull(intermediateFile, dataByte)
 		if err != nil {
-			fmt.Println("err reading from temp file", err, create.Name(), fileName, uploadId)
+			fmt.Println("err reading from temp file", err, intermediateFile.Name(), fileName, uploadId)
 			return ""
 		}
 		//check if upload url has expired
@@ -186,7 +174,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		UploadFile(uploadUrl[i].Str, token, dataByte)
 
 	}
-	fmt.Println("uploading done, elapsed ", time.Now().Sub(bg).String())
+	fmt.Println("Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)
 	return uploadFileId
