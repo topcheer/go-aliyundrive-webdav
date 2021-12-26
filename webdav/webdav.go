@@ -58,7 +58,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		h.Config = config
 	}
-
 	switch r.Method {
 	case "OPTIONS":
 		status, err = h.handleOptions(w, r)

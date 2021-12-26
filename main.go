@@ -69,12 +69,23 @@ func main() {
 		return
 	}
 
-	if len(*refreshToken) == 0 {
+	rtfile, _ := os.OpenFile(".refresh_token_"+*port, os.O_RDWR|os.O_CREATE, 0666)
+	stat, _ := rtfile.Stat()
+	defer rtfile.Close()
+	if len(*refreshToken) == 0 && stat.Size() == 0 {
 		fmt.Println("rt为必填项,请输入refreshToken")
 		return
 	}
-	if len(os.Args) > 2 && os.Args[1] == "rt" {
-		*refreshToken = os.Args[2]
+	var rtoken string
+	if len(*refreshToken) > 0 {
+		rtoken = *refreshToken
+	} else {
+		rt := make([]byte, stat.Size())
+		_, err := rtfile.Read(rt)
+		if err != nil {
+			return
+		}
+		rtoken = string(rt)
 	}
 	var address string
 	if runtime.GOOS == "windows" {
@@ -83,12 +94,15 @@ func main() {
 
 		address = "0.0.0.0:" + *port
 	}
-	refreshResult := aliyun.RefreshToken(*refreshToken)
+
+	refreshResult := aliyun.RefreshToken(rtoken)
 	if reflect.DeepEqual(refreshResult, model.RefreshTokenModel{}) {
 		fmt.Println("refreshToken已过期")
 		return
 	} else {
 		fmt.Println("refreshToken可以使用")
+		rtfile.Seek(0, 0)
+		rtfile.Write([]byte(refreshResult.RefreshToken))
 	}
 
 	config := model.Config{
@@ -145,15 +159,15 @@ func main() {
 		}
 		fs.ServeHTTP(w, req)
 	})
-	go refresh(fs)
+	go refresh(fs, rtfile)
 	http.ListenAndServe(address, nil)
 
 }
-func refresh(fs *webdav.Handler) {
-	//每隔10小时刷新一下RefreshToken
-	timer := time.NewTimer(10 * time.Hour)
+func refresh(fs *webdav.Handler, tokenFile *os.File) {
+	//每隔30秒刷新一下RefreshToken
+	timer := time.NewTimer(30 * time.Second)
 	for {
-		timer.Reset(10 * time.Hour)
+		timer.Reset(30 * time.Second)
 		select {
 		case <-timer.C:
 			refreshResult := aliyun.RefreshToken(fs.Config.RefreshToken)
@@ -163,6 +177,9 @@ func refresh(fs *webdav.Handler) {
 				DriveId:      refreshResult.DefaultDriveId,
 				ExpireTime:   time.Now().Unix() + refreshResult.ExpiresIn,
 			}
+			tokenFile.Seek(0, 0)
+			tokenFile.Write([]byte(refreshResult.RefreshToken))
+			fmt.Println("💻  Refresh Token")
 		}
 	}
 }
