@@ -14,7 +14,6 @@ import (
 	"io"
 	"math"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -60,8 +59,9 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	var uploadId string
 	var uploadFileId string
 	var uid = uuid.New().String()
-	var intermediateFile, err = os.Create(uid + url.QueryEscape(strings.ReplaceAll(r.URL.Path, "/", "_")))
+	var intermediateFile, err = os.Create(uid)
 	if err != nil {
+		fmt.Println("❌❌❌  Error Creating Intermediate File", r.URL.Path)
 		return ""
 	}
 	defer func(create *os.File) {
