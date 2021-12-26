@@ -182,13 +182,13 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			}
 		}
 		if ok := UploadFile(uploadUrl[i].Str, token, dataByte); !ok {
-			fmt.Println("❌  Upload part failed", fileName, "part", i+1, "cancel upload")
+			fmt.Println("❌  Upload part failed filename", fileName, "Part#", i+1, " 😜   Cancel upload")
 			return ""
 		}
-		fmt.Println("✅  Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
+		fmt.Println("✅  Done part:", i+1, "Total size:", r.ContentLength, "Elapsed:", time.Now().Sub(pstart).String(), "Total part", count)
 
 	}
-	fmt.Println("✅  Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
+	fmt.Println("✅  Done. Elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)
 	return uploadFileId
