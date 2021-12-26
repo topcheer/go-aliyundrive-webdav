@@ -199,7 +199,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		fmt.Println("✅  Done part:", i+1, "Total size:", r.ContentLength, "Elapsed:", time.Now().Sub(pstart).String(), "Total part", count)
 
 	}
-	fmt.Println("✅  Done. Elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
+	fmt.Println("⚡️  Done. Elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 	cache.GoCache.Delete(parentId)
 	return uploadFileId
