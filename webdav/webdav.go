@@ -210,20 +210,17 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
 		strArr := strings.Split(reqPath, "/")
 
-		list, err := aliyun.GetList(h.Config.Token, h.Config.DriveId, "")
-		if err != nil {
-			return http.StatusNotFound, err
+		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
+		if fi.FileId == "" {
+			fi, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, getFileId(strArr))
+			if err != nil {
+				return 0, err
+			}
 		}
-
-		fi, err = findUrl(strArr, h.Config.Token, h.Config.DriveId, list)
 		if err != nil || fi.FileId == "" {
 			return http.StatusNotFound, err
 		}
-		//url := fi.Thumbnail
-		//url := fi.Url
-		//if len(url) == 0 {
-		//url=fi.Url
-		//}
+
 		rangeStr := r.Header.Get("range")
 
 		if len(rangeStr) > 0 && strings.LastIndex(rangeStr, "-") > 0 {
@@ -250,16 +247,8 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 			return http.StatusInternalServerError, err
 		}
 		w.Header().Set("ETag", etag)
-
-		//http.ServeContent(w, r, reqPath, int64(fi.Size), fi.UpdatedAt)
 		return 0, nil
-		//for _, i := range list.Items {
-		//	if i.Name == reqPath {
-		//		fi = i
-		//		data = aliyun.GetFile(i.Url, h.Config.Token)
-		//		break
-		//	}
-		//}
+
 	}
 
 	if err != nil {
@@ -267,15 +256,6 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 	}
 	// TODO: check locks for read-only access??
 
-	//f, err := h.FileSystem.OpenFile(ctx, reqPath, os.O_RDONLY, 0)
-	//if err != nil {
-	//	return http.StatusNotFound, err
-	//}
-	//defer f.Close()
-	//fi, err := f.Stat()
-	//if err != nil {
-	//	return http.StatusNotFound, err
-	//}
 	if fi.Type == "folder" {
 		return http.StatusMethodNotAllowed, nil
 	}
@@ -318,11 +298,6 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 				}
 			}
 		}
-
-		if (fi != model.ListModel{}) {
-
-		}
-
 	}
 
 	return http.StatusNoContent, nil
@@ -491,8 +466,16 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 	if rename {
 		var fi model.ListModel
 		strArr := strings.Split(src, "/")
-		list, _ := aliyun.GetList(h.Config.Token, h.Config.DriveId, "")
-		fi, _ = findUrl(strArr, h.Config.Token, h.Config.DriveId, list)
+		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
+		if fi.FileId == "" {
+			fi, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, getFileId(strArr))
+			if err != nil {
+				return 0, err
+			}
+		}
+		if err != nil || fi.FileId == "" {
+			return http.StatusNotFound, err
+		}
 
 		if dstIndex == -1 {
 			dstIndex = 0
@@ -506,13 +489,33 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 	if src[srcIndex+1:] == dst[dstIndex+1:] && srcIndex != dstIndex {
 		var fi model.ListModel
 		strArr := strings.Split(src, "/")
-		list, _ := aliyun.GetList(h.Config.Token, h.Config.DriveId, "")
-		fi, _ = findUrl(strArr, h.Config.Token, h.Config.DriveId, list)
+		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
+		if fi.FileId == "" {
+			fi, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, getFileId(strArr))
+			if err != nil {
+				return http.StatusNotFound, err
+			}
+		}
+		if err != nil || fi.FileId == "" {
+			return http.StatusNotFound, err
+		}
 
 		strArrParent := strings.Split(dst[:dstIndex], "/")
-		parent, _ := findUrl(strArrParent, h.Config.Token, h.Config.DriveId, list)
-
+		parent := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArrParent))
+		if parent.FileId == "" {
+			parent, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArrParent, getFileId(strArrParent))
+			if err != nil {
+				return http.StatusNotFound, err
+			}
+		}
+		if err != nil || parent.FileId == "" {
+			return http.StatusNotFound, err
+		}
 		aliyun.BatchFile(h.Config.Token, h.Config.DriveId, fi.FileId, parent.FileId)
+		cache.GoCache.Delete("FID_" + src)
+		cache.GoCache.Delete("FID_" + src[:srcIndex])
+		cache.GoCache.Delete("FID_" + dst)
+		cache.GoCache.Delete("FID_" + dst[:dstIndex])
 		return http.StatusNoContent, nil
 	}
 
@@ -651,8 +654,10 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 		}
 		if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
 			strArr := strings.Split(reqPath[:lastIndex], "/")
-			list, _ := aliyun.GetList(h.Config.Token, h.Config.DriveId, getFileId(strArr))
-			fi, _ = findUrl(strArr, h.Config.Token, h.Config.DriveId, list)
+			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
+			if fi.FileId == "" {
+				fi, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, getFileId(strArr))
+			}
 		}
 		if reflect.DeepEqual(fi, model.ListModel{}) {
 			created = true
@@ -899,43 +904,6 @@ func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request) (statu
 		return http.StatusInternalServerError, closeErr
 	}
 	return 0, nil
-}
-
-func findUrl(strArr []string, token, driveId string, list model.FileListModel) (model.ListModel, error) {
-	var m model.ListModel
-	for _, v := range list.Items {
-		if v.Name == strArr[0] {
-			m = v
-			if len(strArr) > 1 {
-				list, _ := aliyun.GetList(token, driveId, v.FileId)
-				return findUrl(strArr[1:], token, driveId, list)
-			} else {
-				return m, nil
-			}
-		}
-	}
-	return m, nil
-}
-
-func findList(strArr []string, token, driveId string, parentId string) (model.FileListModel, error) {
-	var list model.FileListModel
-	var err error
-	err = errors.New("未找到数据")
-	list, _ = aliyun.GetList(token, driveId, parentId)
-	num := 0
-	for _, a := range strArr {
-		for _, v := range list.Items {
-			if v.Name == a {
-				list, _ = aliyun.GetList(token, driveId, v.FileId)
-				num += 1
-				break
-			}
-		}
-	}
-	if num == len(strArr) {
-		err = nil
-	}
-	return list, err
 }
 
 func makePropstatResponse(href string, pstats []Propstat) *response {

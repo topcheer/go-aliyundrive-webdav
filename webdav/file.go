@@ -783,7 +783,7 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, parent model.ListMode
 		} else {
 			cheng += 1
 			if fileInfo.Type == "folder" && !strings.Contains(userAgent, "RaiDrive") && cheng < 2 {
-				info, _ := aliyun.GetList(token, driver, fileInfo.FileId)
+				info, _ := aliyun.GetListA(token, driver, fileInfo.FileId, true)
 				walkFS(ctx, fs, depth, fileInfo, info, walkFn, token, driver, userAgent, cheng)
 			} else {
 				err = walkFS(ctx, fs, depth, fileInfo, fileList, walkFn, token, driver, userAgent, cheng)

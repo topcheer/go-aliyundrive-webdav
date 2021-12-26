@@ -16,6 +16,10 @@ import (
 )
 
 func GetList(token string, driveId string, parentFileId string, marker ...string) (model.FileListModel, error) {
+	return GetListA(token, driveId, parentFileId, false, marker...)
+}
+
+func GetListA(token string, driveId string, parentFileId string, folderOnly bool, marker ...string) (model.FileListModel, error) {
 
 	if len(parentFileId) == 0 {
 		parentFileId = "root"
@@ -45,6 +49,9 @@ func GetList(token string, driveId string, parentFileId string, marker ...string
 	if len(marker) > 0 {
 		postData["marker"] = marker[0]
 	}
+	if folderOnly {
+		postData["type"] = "folder"
+	}
 
 	data, err := json.Marshal(postData)
 	if err != nil {
@@ -60,7 +67,7 @@ func GetList(token string, driveId string, parentFileId string, marker ...string
 	}
 	if list.NextMarker != "" {
 		//fmt.Println("Next Page Marker: " + list.NextMarker)
-		var newList, _ = GetList(token, driveId, parentFileId, list.NextMarker)
+		var newList, _ = GetListA(token, driveId, parentFileId, folderOnly, list.NextMarker)
 		list.Items = append(list.Items, newList.Items...)
 		list.NextMarker = newList.NextMarker
 	}
@@ -185,7 +192,7 @@ func ReName(token string, driveId string, newName string, fileId string) bool {
 		fmt.Println(e)
 	}
 	cache.GoCache.Delete(m.ParentFileId)
-	fmt.Println(string(rs))
+	//fmt.Println(string(rs))
 	return true
 }
 
@@ -226,37 +233,6 @@ func Walk(token string, driverId string, paths []string, parentFileId string) (m
 
 	}
 	return item, list, err
-}
-
-func Locate(token string, driverId string, paths []string, parentFileId string) (model.ListModel, model.FileListModel) {
-	var item model.ListModel
-	var list model.FileListModel
-	if len(paths) == 0 || paths[0] == "" {
-		item = model.ListModel{}
-		list, _ = GetList(token, driverId, "")
-		return item, list
-	}
-	for _, path := range paths {
-		if parentFileId == "" {
-			parentFileId = "root"
-		}
-
-		list = Search(token, driverId, path, parentFileId, "folder")
-
-		if len(list.Items) > 0 {
-			item = list.Items[0]
-			list, _ = GetList(token, driverId, item.FileId)
-			if path == paths[len(paths)-1] {
-				return item, list
-			}
-			item, list = Locate(token, driverId, paths[1:], item.FileId)
-		} else {
-			list, _ = GetList(token, driverId, item.FileId)
-			return item, list
-		}
-
-	}
-	return item, list
 }
 
 func Search(token string, driveId string, name string, parentFileId string, Type string) model.FileListModel {
