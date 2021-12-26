@@ -12,6 +12,7 @@ import (
 )
 
 func Post(url, token string, data []byte) []byte {
+
 	res, code := PostExpectStatus(url, token, data)
 	if code != -1 {
 		return res
@@ -35,19 +36,30 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 	req.Header.Add("referer", "https://www.aliyundrive.com/")
 	req.Header.Add("Authorization", "Bearer "+token)
 
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return nil, -1
-	}
-	defer res.Body.Close()
+	for i := 0; i < 5; i++ {
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return nil, -1
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Println("❌  ", err)
+			fmt.Println("🐛  Retrying...in 5 seconds")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				fmt.Println("🙅  ", err)
+			}
+		}(res.Body)
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+			return nil, -1
+		}
+		return body, res.StatusCode
 	}
-	return body, res.StatusCode
+	return nil, -1
 }
 func Put(url, token string, data []byte) ([]byte, int64) {
 	method := "PUT"
@@ -70,7 +82,7 @@ func Put(url, token string, data []byte) ([]byte, int64) {
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-
+				fmt.Println("🙅  ", err)
 			}
 		}(res.Body)
 
@@ -104,24 +116,19 @@ func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange stri
 	req.Header.Add("range", rangeStr)
 	req.Header.Add("if-range", ifRange)
 
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return false
+	for i := 0; i < 5; i++ {
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Println("❌  ", err)
+			fmt.Println("🐛  Retrying...in 5 seconds")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		io.Copy(w, res.Body)
+		res.Body.Close()
+		return true
 	}
-	io.Copy(w, res.Body)
-	res.Body.Close()
-	return true
-
-	//	body, err := ioutil.ReadAll(res.Body)
-	//	if len(body) == 0 {
-	//		fmt.Println("获取详情报错")
-	//	}
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		return nil
-	//	}
-	//	return body
+	return false
 }
 func GetProxy(w http.ResponseWriter, req *http.Request, urlStr, token string) []byte {
 
