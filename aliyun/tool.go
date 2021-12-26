@@ -158,7 +158,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		}
 		_, err := io.ReadFull(intermediateFile, dataByte)
 		if err != nil {
-			fmt.Println("❌  err reading from temp file", err, intermediateFile.Name(), fileName, uploadId)
+			fmt.Println("❌  error reading from temp file", err, intermediateFile.Name(), fileName, uploadId)
 			return ""
 		}
 		//check if upload url has expired
@@ -178,6 +178,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			} else {
 				//fmt.Println("ℹ️  从头再来 💃🤔⬆️‼️ Resetting upload part")
 				//i = 0
+				fmt.Println("  💻  Renew Upload URL Done, Total Parts", len(uploadUrl))
 			}
 		}
 		if ok := UploadFile(uploadUrl[i].Str, token, dataByte); !ok {
