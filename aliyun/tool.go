@@ -70,7 +70,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	//写入中间文件
 	_, copyError := io.Copy(intermediateFile, r.Body)
 	if copyError != nil {
-		fmt.Println("Error creating intermediate file ", fileName, intermediateFile.Name(), r.ContentLength)
+		fmt.Println("❌  Error creating intermediate file ", fileName, intermediateFile.Name(), r.ContentLength)
 		return ""
 	}
 	//大于150K小于25G的才开启闪传
@@ -122,7 +122,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		}
 		uploadUrl, uploadId, uploadFileId, flashUpload = UpdateFileFile(token, driveId, fileName, parentId, strconv.FormatInt(r.ContentLength, 10), int(count), strings.ToUpper(hex.EncodeToString(h2.Sum(nil))), proof, flashUpload)
 		if flashUpload && (uploadFileId != "") {
-			fmt.Println("Rapid Upload ", fileName, r.ContentLength)
+			fmt.Println("⚡️⚡️  Rapid Upload ", fileName, r.ContentLength)
 			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
 			cache.GoCache.Delete(parentId)
 			return uploadFileId
