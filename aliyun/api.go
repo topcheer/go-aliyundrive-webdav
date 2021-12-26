@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func GetList(token string, driveId string, parentFileId string, marker ...string) (model.FileListModel, error) {
@@ -401,12 +402,14 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 
 }
 func UploadFile(url string, token string, data []byte) {
-	for i := 0; i < 3; i++ {
+	//最多试5次
+	for i := 0; i < 5; i++ {
 		rs := net.Put(url, token, data)
 		if len(rs) == 0 {
 			return
 		} else {
-			fmt.Println("Upload Error: ", string(rs), " Retrying")
+			fmt.Println("Upload Error: ", string(rs), " Retrying in 5 seconds")
+			time.Sleep(5 * time.Second)
 		}
 	}
 }
