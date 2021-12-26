@@ -431,6 +431,6 @@ func GetUploadUrls(token string, driveId string, fileId string, uploadId string,
 	partStr += "]"
 	uploadRequest := `{"drive_id":"` + driveId + `","part_info_list":` + partStr + `,"file_id":"` + fileId + `","upload_id":"` + uploadId + `"}`
 	rs := net.Post(model.APIFILEUPLOADURL, token, []byte(uploadRequest))
-	//fmt.Println(string(rs))
+	fmt.Println("ℹ️  GetUploadUrls", string(rs))
 	return gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
 }
