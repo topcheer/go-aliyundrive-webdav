@@ -305,6 +305,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
+		fmt.Println("❌❌❌  Already in progress", reqPath)
 		return http.StatusBadRequest, errors.New("Upload in progress")
 	}
 	if err != nil {
