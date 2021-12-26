@@ -146,6 +146,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	fmt.Println("Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
 	intermediateFile.Seek(0, 0)
 	for i := 0; i < int(count); i++ {
+		fmt.Println("Uploading part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength)
+		pstart := time.Now()
 		var dataByte []byte
 		if int(count) == 1 {
 			dataByte = make([]byte, r.ContentLength)
@@ -176,6 +178,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			}
 		}
 		UploadFile(uploadUrl[i].Str, token, dataByte)
+		fmt.Println("Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
 
 	}
 	fmt.Println("Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
