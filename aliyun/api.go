@@ -404,8 +404,8 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 func UploadFile(url string, token string, data []byte) bool {
 	//最多试5次
 	for i := 0; i < 5; i++ {
-		rs := net.Put(url, token, data)
-		if len(rs) == 0 {
+		rs, status := net.Put(url, token, data)
+		if len(rs) == 0 && status == 0 {
 			return true
 		} else {
 			fmt.Println("❌  Upload Error: ", string(rs), " Retrying in 5 seconds")

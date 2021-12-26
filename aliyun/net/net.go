@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 )
 
 func Post(url, token string, data []byte) []byte {
@@ -48,29 +49,40 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 	}
 	return body, res.StatusCode
 }
-func Put(url, token string, data []byte) []byte {
+func Put(url, token string, data []byte) ([]byte, int64) {
 	method := "PUT"
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
 
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return nil, -1
 	}
+	for i := 0; i < 5; i++ {
+		res, err := client.Do(req)
 
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	defer res.Body.Close()
+		if err != nil || res.StatusCode != 200 {
+			fmt.Println("❌  ", err)
+			fmt.Println("🐛  Retrying...in 5 seconds")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return nil
+			}
+		}(res.Body)
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+			return nil, -1
+		}
+		return body, 0
 	}
-	return body
+	fmt.Println("💀  Fail to PUT", url)
+	return nil, -1
 }
 func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange string) bool {
 

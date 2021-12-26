@@ -184,7 +184,7 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 			fmt.Println("❌  Upload part failed", fileName, "part", i+1, "cancel upload")
 			return ""
 		}
-		fmt.Println("📢  Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
+		fmt.Println("✅  Done part:", i+1, "total:", count+1, fileName, "total size:", r.ContentLength, "time elapsed:", time.Now().Sub(pstart).String())
 
 	}
 	fmt.Println("✅  Done, elapsed ", time.Now().Sub(bg).String(), fileName, r.ContentLength)
