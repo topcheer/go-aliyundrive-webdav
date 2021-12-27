@@ -306,7 +306,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
 		fmt.Println("❌ ❌ ❌  Already in progress", reqPath)
-		return http.StatusLocked, errors.New("Upload in progress")
+		return http.StatusCreated, errors.New("Upload in progress")
 	}
 	if err != nil {
 		return status, err
@@ -345,7 +345,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
 					fmt.Println("🔥  Error: can't find parent folder", reqPath)
-					return http.StatusBadRequest, errors.New("parent folder does not exist,please create first")
+					return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 				} else {
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 				}
@@ -393,15 +393,15 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(pi, model.ListModel{}) {
 				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
-				return http.StatusBadGateway, errors.New("parent folder does not exist")
+				return http.StatusConflict, errors.New("parent folder does not exist")
 			}
 			if pi.Type == "file" {
 				fmt.Println("❌ ❌  parent need to be a folder, Request path", reqPath)
-				return http.StatusBadGateway, errors.New("parent need to be a folder")
+				return http.StatusConflict, errors.New("parent need to be a folder")
 			}
 			if len(strArr) > 2 && pi.Name != strArr[len(strArr)-2] {
 				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
-				return http.StatusBadGateway, errors.New("parent folder does not exist")
+				return http.StatusConflict, errors.New("parent folder does not exist")
 			}
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
@@ -414,7 +414,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			fmt.Println("✅  Directory created", reqPath)
 		} else {
 			fmt.Println("❌  Create Directory Failed", reqPath)
-			return http.StatusBadGateway, errors.New("create directory failed: " + reqPath)
+			return http.StatusConflict, errors.New("create directory failed: " + reqPath)
 		}
 	}
 
