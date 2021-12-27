@@ -59,12 +59,17 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 		return model.FileListModel{}, err
 	}
 
-	body := net.Post(model.APILISTURL, token, data)
-
-	e := json.Unmarshal(body, &list)
-	if e != nil {
-		fmt.Println("❌  GetList Failed", e, string(body))
+	for i := 0; i < 5; i++ {
+		body := net.Post(model.APILISTURL, token, data)
+		e := json.Unmarshal(body, &list)
+		if e != nil {
+			fmt.Println("❌  GetList Failed", e, string(body), "retry in 5 seconds")
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
+
 	if list.NextMarker != "" {
 		//fmt.Println("Next Page Marker: " + list.NextMarker)
 		var newList, _ = GetListA(token, driveId, parentFileId, folderOnly, list.NextMarker)
