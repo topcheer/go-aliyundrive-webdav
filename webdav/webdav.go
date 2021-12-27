@@ -356,7 +356,6 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	//if r.ContentLength == 0 {
 	//	return http.StatusCreated, nil
 	//}
-	fmt.Println("⬆️  Uploading ", reqPath, r.ContentLength)
 	cache.GoCache.Set("IN_PROGRESS"+reqPath, fileName, -1)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
 	cache.GoCache.Delete("IN_PROGRESS" + reqPath)
