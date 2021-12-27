@@ -305,7 +305,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
-		fmt.Println("❌ ❌ ❌  Already in progress", reqPath)
+		fmt.Print("❌ ❌ ❌  Already in progress", reqPath)
 		return http.StatusCreated, errors.New("Upload in progress")
 	}
 	if err != nil {
@@ -662,11 +662,14 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 			lastIndex = 0
 		}
 		if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
-			strArr := strings.Split(reqPath[:lastIndex], "/")
-			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
-			if fi.FileId == "" {
-				fi, _, err = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, getFileId(strArr))
+			strArr := strings.Split(reqPath, "/")
+			parent := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
+			if reflect.DeepEqual(parent, model.ListModel{}) || (len(strArr) > 2 && parent.Name != strArr[len(strArr)-2]) {
+				parent, _, _ = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-1], getFileId(strArr))
+				fmt.Println("❌  父目录不存在", reqPath)
+				return http.StatusConflict, errors.New("parent folder doesn't exist")
 			}
+			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
 		}
 		if reflect.DeepEqual(fi, model.ListModel{}) {
 			created = true
