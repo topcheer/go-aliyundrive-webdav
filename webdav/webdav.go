@@ -305,7 +305,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
-		fmt.Println("❌❌❌  Already in progress", reqPath)
+		fmt.Println("❌ ❌ ❌  Already in progress", reqPath)
 		return http.StatusLocked, errors.New("Upload in progress")
 	}
 	if err != nil {
@@ -392,19 +392,24 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(pi, model.ListModel{}) {
+				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
 				return http.StatusBadGateway, errors.New("parent folder does not exist")
 			}
 			if pi.Type == "file" {
+				fmt.Println("❌ ❌  parent need to be a folder, Request path", reqPath)
 				return http.StatusBadGateway, errors.New("parent need to be a folder")
+			}
+			if len(strArr) > 2 && pi.Name != strArr[len(strArr)-2] {
+				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
+				return http.StatusBadGateway, errors.New("parent folder does not exist")
 			}
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
-		fmt.Println("📁  Creating Directory", reqPath)
+		fmt.Println("📁  Creating Directory", reqPath, parentFileId)
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
-			cache.GoCache.Set("parent"+reqPath, dir.ParentFileId, -1)
 			cache.GoCache.Delete(parentFileId)
 			fmt.Println("✅  Directory created", reqPath)
 		} else {

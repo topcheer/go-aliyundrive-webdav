@@ -257,16 +257,6 @@ func Search(token string, driveId string, name string, parentFileId string, Type
 func MakeDir(token string, driveId string, name string, parentFileId string) model.ListModel {
 	rs := net.Post(model.APIMKDIR, token, []byte(`{"drive_id":"`+driveId+`","parent_file_id":"`+parentFileId+`","name":"`+name+`","check_name_mode":"refuse","type":"folder"}`))
 	var fi model.ListModel
-	//正确返回示例
-	//{
-	//	"parent_file_id": "root",
-	//	"type": "folder",
-	//	"file_id": "6134d1b4253b74c8f7e24d72afa20f58fd19ac28",
-	//	"domain_id": "bj29",
-	//	"drive_id": "1662258",
-	//	"file_name": "新0000",
-	//	"encrypt_mode": "none"
-	//}
 	err := json.Unmarshal(rs, &fi)
 	if err == nil {
 		if fi.Name == name {
