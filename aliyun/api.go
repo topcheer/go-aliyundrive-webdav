@@ -63,7 +63,7 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 
 	e := json.Unmarshal(body, &list)
 	if e != nil {
-		fmt.Println(e)
+		fmt.Println("❌  GetList Failed", e, string(body))
 	}
 	if list.NextMarker != "" {
 		//fmt.Println("Next Page Marker: " + list.NextMarker)
@@ -105,7 +105,7 @@ func GetFilePath(token string, driveId string, parentFileId string, fileId strin
 
 	e := json.Unmarshal(body, &list)
 	if e != nil {
-		fmt.Println(e)
+		fmt.Println("❌   GetFilePath Failed", e, string(body))
 	}
 	minNum := 0
 	if typeStr == "folder" {
@@ -272,7 +272,7 @@ func GetFileDetail(token string, driveId string, fileId string) model.ListModel 
 	var m model.ListModel
 	e := json.Unmarshal(rs, &m)
 	if e != nil {
-		fmt.Println(e)
+		fmt.Println("❌   GetFileDetail Failed", e, string(rs))
 	}
 	return m
 }
