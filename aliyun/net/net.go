@@ -39,8 +39,11 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 	for i := 0; i < 5; i++ {
 
 		res, err := client.Do(req)
+		var body []byte
 		if err != nil {
-			body, _ := io.ReadAll(res.Body)
+			if res.Body != nil {
+				body, _ = io.ReadAll(res.Body)
+			}
 			fmt.Println("❌  Post Error", err, url, string(body), res.StatusCode, res.Status)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
@@ -53,7 +56,7 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 			}
 		}(res.Body)
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err = ioutil.ReadAll(res.Body)
 		if err != nil {
 			fmt.Println(err)
 			return nil, -1
@@ -74,9 +77,11 @@ func Put(url, token string, data []byte) ([]byte, int) {
 	var res *http.Response
 	for i := 0; i < 5; i++ {
 		res, err = client.Do(req)
-
+		var body []byte
 		if err != nil || res.StatusCode != 200 {
-			body, _ := io.ReadAll(res.Body)
+			if res.Body != nil {
+				body, _ = io.ReadAll(res.Body)
+			}
 			fmt.Println("❌  Put Error", err, res.StatusCode, res.Status, url, string(body))
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
@@ -121,8 +126,11 @@ func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange stri
 
 	for i := 0; i < 5; i++ {
 		res, err := client.Do(req)
+		var body []byte
 		if err != nil {
-			body, _ := io.ReadAll(res.Body)
+			if res.Body != nil {
+				body, _ = io.ReadAll(res.Body)
+			}
 			fmt.Println("❌  Get Error", err, url, string(body), res.StatusCode, res.Status)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
