@@ -41,10 +41,7 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 		res, err := client.Do(req)
 		var body []byte
 		if err != nil {
-			if res.Body != nil {
-				body, _ = io.ReadAll(res.Body)
-			}
-			fmt.Println("❌  Post Error", err, url, string(body), res.StatusCode, res.Status)
+			fmt.Println("❌  Post Error", err, url, res.StatusCode, res.Status)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
@@ -79,10 +76,7 @@ func Put(url, token string, data []byte) ([]byte, int) {
 		res, err = client.Do(req)
 		var body []byte
 		if err != nil || res.StatusCode != 200 {
-			if res.Body != nil {
-				body, _ = io.ReadAll(res.Body)
-			}
-			fmt.Println("❌  Put Error", err, res.StatusCode, res.Status, url, string(body))
+			fmt.Println("❌  Put Error", err, res.StatusCode, res.Status, url)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
