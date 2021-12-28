@@ -287,6 +287,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 			aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
 			fmt.Println("🕺  删除", reqPath)
 			cache.GoCache.Delete("FID_" + reqPath)
+			cache.GoCache.Delete("FI_" + fi.FileId)
 		} else {
 			fi, _, walkerr := aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, "root")
 			if walkerr == nil {
@@ -294,6 +295,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 					aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
 					fmt.Println("🕺  删除", reqPath)
 					cache.GoCache.Delete("FID_" + reqPath)
+					cache.GoCache.Delete("FI_" + fi.FileId)
 				}
 			}
 		}
@@ -400,7 +402,11 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
-			cache.GoCache.Delete(parentFileId)
+			if va, ok := cache.GoCache.Get(parentFileId); ok {
+				l := va.(model.FileListModel)
+				l.Items = append(l.Items, aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, dir.FileId))
+				cache.GoCache.SetDefault(parentFileId, l)
+			}
 			fmt.Println("✅  Directory created", reqPath)
 		} else {
 			fmt.Println("❌  Create Directory Failed", reqPath)

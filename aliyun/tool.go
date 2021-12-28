@@ -39,7 +39,12 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		_, _, fileId, _ := UpdateFileFile(token, driveId, fileName, parentId, "0", 1, sha1_0, "", true)
 		if fileId != "" {
 			fmt.Println("0⃣️  Created zero byte file", r.URL.Path)
-			cache.GoCache.Delete(parentId)
+			if va, ok := cache.GoCache.Get(parentId); ok {
+				l := va.(model.FileListModel)
+				l.Items = append(l.Items, GetFileDetail(token, driveId, fileId))
+				cache.GoCache.SetDefault(parentId, l)
+			}
+
 			return fileId
 		} else {
 			fmt.Println("❌  Unable to create zero byte file", r.URL.Path)
@@ -138,7 +143,11 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 		if flashUpload && (uploadFileId != "") {
 			fmt.Println("⚡️⚡️  Rapid Upload ", r.URL.Path, r.ContentLength)
 			//UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
-			cache.GoCache.Delete(parentId)
+			if va, ok := cache.GoCache.Get(parentId); ok {
+				l := va.(model.FileListModel)
+				l.Items = append(l.Items, GetFileDetail(token, driveId, uploadFileId))
+				cache.GoCache.SetDefault(parentId, l)
+			}
 			return uploadFileId
 		}
 	} else {
@@ -203,6 +212,10 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	}
 	fmt.Println("⚡ ⚡ ⚡   Done. Elapsed ", time.Now().Sub(bg).String(), r.URL.Path, r.ContentLength)
 	UploadFileComplete(token, driveId, uploadId, uploadFileId, parentId)
-	cache.GoCache.Delete(parentId)
+	if va, ok := cache.GoCache.Get(parentId); ok {
+		l := va.(model.FileListModel)
+		l.Items = append(l.Items, GetFileDetail(token, driveId, uploadFileId))
+		cache.GoCache.SetDefault(parentId, l)
+	}
 	return uploadFileId
 }
