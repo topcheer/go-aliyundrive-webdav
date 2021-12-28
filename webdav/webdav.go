@@ -336,7 +336,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			if len(paths) == 1 {
 				parentFileId = "root"
 			} else {
-				if pid, err := cache.GoCache.Get("FID_" + strings.Join(paths[:len(paths)-1], "/")); err {
+				if pid, err := cache.GoCache.Get("FID_" + strings.Join(paths[:len(paths)-2], "/")); err {
 					parentFileId = pid.(string)
 				} else {
 					parentFileId = "root"
