@@ -330,7 +330,6 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			parentFileId = "root"
 		}
 		fi, _, walkerr = aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr, "", true)
-		fmt.Println("------", reqPath, fi.Name, walkerr, strArr[len(strArr)-1])
 		if walkerr == nil {
 			if fi.Name != strArr[len(strArr)-1] {
 				fmt.Println("🔥  Error: can't find parent folder", reqPath)
@@ -339,6 +338,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 				parentFileId = fi.FileId
 				cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 			}
+		} else {
+			fmt.Println("🔥  Error: can't find parent folder", reqPath)
+			return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 		}
 	}
 
