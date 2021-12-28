@@ -322,36 +322,21 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	}
 	var fi model.ListModel
 	var walkerr error
+	var parentFileId string
 	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
 
 		strArr := strings.Split(reqPath[:lastIndex], "/")
-		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
-
-		if fi.Name != "" && fi.Name != "Default" {
-			cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
+		if len(strArr) == 1 {
+			parentFileId = "root"
 		}
-		if fi.Name != strArr[len(strArr)-1] {
-			var parentFileId string
-			paths := strings.Split(reqPath, "/")
-			if len(paths) == 1 {
-				parentFileId = "root"
+		fi, _, walkerr = aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr, "", true)
+		fmt.Println("------", reqPath, fi.Name, walkerr, strArr[len(strArr)-1])
+		if walkerr == nil {
+			if fi.Name != strArr[len(strArr)-1] {
+				fmt.Println("🔥  Error: can't find parent folder", reqPath)
+				return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 			} else {
-				if pid, err := cache.GoCache.Get("FID_" + strings.Join(paths[:len(paths)-2], "/")); err {
-					parentFileId = pid.(string)
-				} else {
-					parentFileId = "root"
-				}
-			}
-
-			fi, _, walkerr = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, parentFileId)
-			fmt.Println("------", reqPath, fi.Name, walkerr, strArr[len(strArr)-1])
-			if walkerr == nil {
-				if fi.Name != strArr[len(strArr)-1] {
-					fmt.Println("🔥  Error: can't find parent folder", reqPath)
-					return http.StatusConflict, errors.New("parent folder does not exist,please create first")
-				} else {
-					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
-				}
+				cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 			}
 		}
 	}

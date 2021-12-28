@@ -203,20 +203,25 @@ func ReName(token string, driveId string, newName string, fileId string) bool {
 
 // Walk 通过路径查找对应项目及所有子项目，当新建文件或文件夹时，也返回Not Found
 func Walk(token string, driverId string, paths []string, parentFileId string) (model.ListModel, model.FileListModel, error) {
+	return WalkFolder(token, driverId, paths, parentFileId, false)
+}
+
+// WalkFolder 通过路径查找对应项目及所有子项目，当新建文件或文件夹时，也返回Not Found
+func WalkFolder(token string, driverId string, paths []string, parentFileId string, folderOnly bool) (model.ListModel, model.FileListModel, error) {
 	var item model.ListModel
 	var list model.FileListModel
 	var err error
 	err = errors.New("not found")
 	if len(paths) == 0 || paths[0] == "" {
 		item = model.ListModel{}
-		list, _ = GetList(token, driverId, "")
+		list, _ = GetListA(token, driverId, "", folderOnly)
 		return item, list, nil
 	}
 	if parentFileId == "" {
 		parentFileId = "root"
 	}
 	for _, path := range paths {
-		list, _ = GetList(token, driverId, parentFileId)
+		list, _ = GetListA(token, driverId, parentFileId, folderOnly)
 		var found bool
 		for _, v := range list.Items {
 			if v.Name == path {
@@ -224,7 +229,7 @@ func Walk(token string, driverId string, paths []string, parentFileId string) (m
 				item = v
 				//找到一个匹配的并且为路径的最后一个，则直接返回相应信息，并直接跳出本循环
 				if path == paths[len(paths)-1] {
-					list, _ = GetList(token, driverId, item.FileId)
+					list, _ = GetListA(token, driverId, item.FileId, folderOnly)
 					return item, list, nil
 				}
 				break
@@ -233,7 +238,7 @@ func Walk(token string, driverId string, paths []string, parentFileId string) (m
 		if found {
 			//开始递归查询子目录
 			paths = paths[1:]
-			item, list, err = Walk(token, driverId, paths, item.FileId)
+			item, list, err = WalkFolder(token, driverId, paths, item.FileId, folderOnly)
 		}
 
 	}
