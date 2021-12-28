@@ -326,6 +326,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 
 		strArr := strings.Split(reqPath[:lastIndex], "/")
 		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
+		fmt.Println("------", reqPath, fi.Name, strArr[len(strArr)-1])
 		if fi.Name != "" && fi.Name != "Default" {
 			cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 		}
