@@ -342,8 +342,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 					parentFileId = "root"
 				}
 			}
-			fmt.Println("------", reqPath, parentFileId, strArr[len(strArr)-1])
+
 			fi, _, walkerr = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, parentFileId)
+			fmt.Println("------", reqPath, fi.Name, walkerr, strArr[len(strArr)-1])
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
 					fmt.Println("🔥  Error: can't find parent folder", reqPath)
