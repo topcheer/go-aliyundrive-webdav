@@ -336,6 +336,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 				fmt.Println("🔥  Error: can't find parent folder", reqPath)
 				return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 			} else {
+				parentFileId = fi.FileId
 				cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 			}
 		}
@@ -345,7 +346,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	//	return http.StatusCreated, nil
 	//}
 	cache.GoCache.Set("IN_PROGRESS"+reqPath, fileName, -1)
-	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, fi.FileId, fileName)
+	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, parentFileId, fileName)
 	cache.GoCache.Delete("IN_PROGRESS" + reqPath)
 	if fileId != "" {
 		cache.GoCache.Set("FID_"+reqPath, fileId, -1)
