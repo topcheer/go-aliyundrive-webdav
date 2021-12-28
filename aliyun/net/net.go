@@ -122,10 +122,11 @@ func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange stri
 		res, err := client.Do(req)
 		var body []byte
 		if err != nil {
-			if res.Body != nil {
+			if res != nil && res.Body != nil {
 				body, _ = io.ReadAll(res.Body)
+				fmt.Println("❌  Get Error", err, url, string(body), res.StatusCode, res.Status)
 			}
-			fmt.Println("❌  Get Error", err, url, string(body), res.StatusCode, res.Status)
+			fmt.Println("❌  Get Error", err)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue

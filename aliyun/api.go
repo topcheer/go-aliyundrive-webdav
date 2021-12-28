@@ -77,7 +77,10 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 		list.NextMarker = newList.NextMarker
 	}
 	if len(list.Items) > 0 {
-		cache.GoCache.Set(parentFileId, list, -1)
+		cache.GoCache.SetDefault(parentFileId, list)
+		for _, item := range list.Items {
+			cache.GoCache.Set("FI_"+item.FileId, item, -1)
+		}
 	}
 	return list, nil
 }
@@ -280,9 +283,12 @@ func MakeDir(token string, driveId string, name string, parentFileId string) mod
 }
 
 func GetFileDetail(token string, driveId string, fileId string) model.ListModel {
-	if va, ok := cache.GoCache.Get("FI_" + fileId); ok {
-		return va.(model.ListModel)
+	if fileId != "root" {
+		if va, ok := cache.GoCache.Get("FI_" + fileId); ok {
+			return va.(model.ListModel)
+		}
 	}
+
 	rs := net.Post(model.APIFILEDETAIL, token, []byte(`{"drive_id":"`+driveId+`","file_id":"`+fileId+`"}`))
 	var m model.ListModel
 	e := json.Unmarshal(rs, &m)
