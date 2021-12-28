@@ -326,7 +326,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 
 		strArr := strings.Split(reqPath[:lastIndex], "/")
 		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
-		fmt.Println("------", reqPath, fi.Name, strArr[len(strArr)-1])
+
 		if fi.Name != "" && fi.Name != "Default" {
 			cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 		}
@@ -342,6 +342,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 					parentFileId = "root"
 				}
 			}
+			fmt.Println("------", reqPath, parentFileId, strArr[len(strArr)-1])
 			fi, _, walkerr = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr, parentFileId)
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
