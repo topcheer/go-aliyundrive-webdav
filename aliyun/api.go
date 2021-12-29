@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -225,6 +226,10 @@ func WalkFolder(token string, driverId string, paths []string, parentFileId stri
 	}
 
 	for _, path := range paths {
+		fi := GetFileDetail(token, driverId, parentFileId)
+		if reflect.DeepEqual(fi, model.ListModel{}) {
+			return model.ListModel{}, model.FileListModel{}, err
+		}
 		list, _ = GetListA(token, driverId, parentFileId, folderOnly)
 		var found bool
 		for _, v := range list.Items {
