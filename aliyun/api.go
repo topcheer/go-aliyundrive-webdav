@@ -249,10 +249,12 @@ func WalkFolder(token string, driverId string, paths []string, parentFileId stri
 			//开始递归查询子目录
 			paths = paths[1:]
 			return WalkFolder(token, driverId, paths, item.FileId, folderOnly)
+		} else {
+			return model.ListModel{}, model.FileListModel{}, err
 		}
 
 	}
-	return item, list, err
+	return model.ListModel{}, model.FileListModel{}, err
 }
 
 func Search(token string, driveId string, name string, parentFileId string, Type string) model.FileListModel {
