@@ -390,11 +390,11 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 		var name string = reqPath
 		//var fi model.ListModel
 		index := strings.LastIndex(reqPath, "/")
+		//2层以上
 		if index > -1 {
 			strArr := strings.Split(reqPath, "/")
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
-			fmt.Println("-----", pi)
 			if reflect.DeepEqual(pi, model.ListModel{}) || pi.FileId == "root" {
 				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-2], "", true)
 				if walkerr != nil {
@@ -403,12 +403,24 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 				}
 				pi = p
 				for _, item := range chd.Items {
+					if len(strArr) == 2 {
+						cache.GoCache.Set("FID_"+strArr[0]+"/"+item.Name, item.FileId, -1)
+					} else {
+						cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-2], "/")+"/"+item.Name, item.FileId, -1)
+					}
+					cache.GoCache.Set("FI_"+item.FileId, item, -1)
 					if item.Name == strArr[len(strArr)-1] {
 						fmt.Println("❌ ❌  folder already exists, Request path", reqPath)
 						return http.StatusCreated, errors.New("folder already exists")
 					}
 				}
+				if len(strArr) == 2 {
+					cache.GoCache.Set("FID_"+strArr[0], p.FileId, -1)
+				} else {
+					cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-2], "/"), p.FileId, -1)
+				}
 
+				cache.GoCache.Set("FI_"+p.FileId, p, -1)
 			}
 
 			parentFileId = pi.FileId
