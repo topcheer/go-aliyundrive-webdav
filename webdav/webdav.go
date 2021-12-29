@@ -360,6 +360,11 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	//if r.ContentLength == 0 {
 	//	return http.StatusCreated, nil
 	//}
+	defer func(rp string) {
+		if _, ok := cache.GoCache.Get("IN_PROGRESS" + rp); ok {
+			cache.GoCache.Delete("IN_PROGRESS" + rp)
+		}
+	}(reqPath)
 	cache.GoCache.Set("IN_PROGRESS"+reqPath, fileName, -1)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, parentFileId, fileName)
 	cache.GoCache.Delete("IN_PROGRESS" + reqPath)
