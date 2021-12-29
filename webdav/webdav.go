@@ -327,10 +327,14 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	var parentFileId string
 	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
 		strArr := strings.Split(reqPath, "/")
+		//如果父目录已经缓存，直接取
 		if v, ok := cache.GoCache.Get("FID_" + strings.Join(strArr[:len(strArr)-1], "/")); ok {
 			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, v.(string))
 			parentFileId = fi.FileId
+			fmt.Println("😊 😊  Cache hit", reqPath[:lastIndex])
 		} else {
+			//如果没找到缓存，尝试从root节点遍历，并设置缓存
+			fmt.Println("😭 😭  Cache missing", reqPath[:lastIndex])
 			strArr := strings.Split(reqPath[:lastIndex], "/")
 			if len(strArr) == 1 {
 				parentFileId = "root"
@@ -343,6 +347,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 				} else {
 					parentFileId = fi.FileId
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
+					fmt.Println("😊 😊  Cache set", strings.Join(strArr, "/"))
 				}
 			} else {
 				fmt.Println("🔥  Error: can't find parent folder", reqPath)
