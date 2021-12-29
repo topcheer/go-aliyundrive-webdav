@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -206,53 +207,56 @@ func ReName(token string, driveId string, newName string, fileId string) bool {
 }
 
 // Walk 通过路径查找对应项目及所有子项目，当新建文件或文件夹时，也返回Not Found
-func Walk(token string, driverId string, paths []string, parentFileId string) (model.ListModel, model.FileListModel, error) {
-	return WalkFolder(token, driverId, paths, parentFileId, false)
+func Walk(token string, driverId string, paths []string) (model.ListModel, model.FileListModel, error) {
+	return WalkFolder(token, driverId, paths, false)
 }
 
 // WalkFolder 通过路径查找对应项目及所有子项目，当新建文件或文件夹时，也返回Not Found
-func WalkFolder(token string, driverId string, paths []string, parentFileId string, folderOnly bool) (model.ListModel, model.FileListModel, error) {
-	var item model.ListModel
+func WalkFolder(token string, driverId string, paths []string, folderOnly bool) (model.ListModel, model.FileListModel, error) {
+	var item = GetFileDetail(token, driverId, "root")
 	var list model.FileListModel
 	var err error
 	err = errors.New("not found")
 	if len(paths) == 0 || paths[0] == "" {
-		item = model.ListModel{}
-		list, _ = GetListA(token, driverId, "", folderOnly)
+		list, _ = GetListA(token, driverId, "root", folderOnly)
 		return item, list, nil
 	}
-	if parentFileId == "" {
-		parentFileId = "root"
-	}
 
-	for _, path := range paths {
-		fi := GetFileDetail(token, driverId, parentFileId)
-		if reflect.DeepEqual(fi, model.ListModel{}) {
+	for j, path := range paths {
+		item = GetFileDetail(token, driverId, item.FileId)
+		if reflect.DeepEqual(item, model.ListModel{}) {
 			return model.ListModel{}, model.FileListModel{}, err
 		}
-		list, _ = GetListA(token, driverId, parentFileId, folderOnly)
-		var found bool
-		for _, v := range list.Items {
-			cache.GoCache.Set("FI_"+v.FileId, v, -1)
-			if v.Name == path {
-				found = true
-				item = v
-				//找到一个匹配的并且为路径的最后一个，则直接返回相应信息，并直接跳出本循环
-				if path == paths[len(paths)-1] {
-					list, _ = GetListA(token, driverId, item.FileId, folderOnly)
-					return item, list, nil
+
+		list, _ = GetListA(token, driverId, item.FileId, folderOnly)
+		for i, v := range list.Items {
+			if _, ok := cache.GoCache.Get("FI_" + v.FileId); !ok {
+				cache.GoCache.Set("FI_"+v.FileId, v, -1)
+			}
+			if j == 0 {
+				if _, ok := cache.GoCache.Get("FID_" + v.Name); !ok {
+					cache.GoCache.Set("FID_"+v.Name, v.FileId, -1)
 				}
+			} else {
+				if _, ok := cache.GoCache.Get("FID_" + strings.Join(paths[:j], "/") + "/" + v.Name); !ok {
+					cache.GoCache.Set("FID_"+strings.Join(paths[:j], "/")+"/"+v.Name, v.FileId, -1)
+				}
+			}
+			//找到一个马上跳出去进入下一个路径
+			if v.Name == path {
+				item = v
 				break
 			}
+			//如果是最后还没跳出，则资源不存在
+			if i == len(list.Items)-1 {
+				return model.ListModel{}, model.FileListModel{}, err
+			}
 		}
-		if found {
-			//开始递归查询子目录
-			paths = paths[1:]
-			return WalkFolder(token, driverId, paths, item.FileId, folderOnly)
-		} else {
-			return model.ListModel{}, model.FileListModel{}, err
-		}
+		if item.Name == path && j == len(paths)-1 {
 
+			list, _ = GetListA(token, driverId, item.FileId, folderOnly)
+			return item, list, nil
+		}
 	}
 	return model.ListModel{}, model.FileListModel{}, err
 }
