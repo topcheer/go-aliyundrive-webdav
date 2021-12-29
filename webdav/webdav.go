@@ -428,6 +428,8 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 				}
 
 				cache.GoCache.Set("FI_"+p.FileId, p, -1)
+			} else {
+				fmt.Println("-----Found parent", pi.Name, "Requested", strArr[:len(strArr)-1])
 			}
 
 			parentFileId = pi.FileId
