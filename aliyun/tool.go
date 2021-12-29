@@ -166,7 +166,11 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 	}
 
 	fmt.Println("📢  Normal upload ", fileName, uploadId, r.ContentLength, stat.Size())
-	intermediateFile.Seek(0, 0)
+	_, e1 := intermediateFile.Seek(0, 0)
+	if e1 != nil {
+		fmt.Println("❌ ❌ Seek err", e1, r.URL.Path)
+		return ""
+	}
 	for i := 0; i < int(count); i++ {
 		fmt.Println("📢  Uploading part:", i+1, "Total:", count, r.URL.Path)
 		pstart := time.Now()
