@@ -394,7 +394,8 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			strArr := strings.Split(reqPath, "/")
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
-			if reflect.DeepEqual(pi, model.ListModel{}) {
+			fmt.Println("-----", pi)
+			if reflect.DeepEqual(pi, model.ListModel{}) || pi.FileId == "root" {
 				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-2], "", true)
 				if walkerr != nil {
 					fmt.Println("❌ ❌  parent folder not found, Request path", reqPath)
