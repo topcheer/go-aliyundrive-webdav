@@ -412,6 +412,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
+			cache.GoCache.Set("FI"+dir.FileId, dir, -1)
 			if va, ok := cache.GoCache.Get(parentFileId); ok {
 				l := va.(model.FileListModel)
 				l.Items = append(l.Items, aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, dir.FileId))
