@@ -326,9 +326,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	var walkerr error
 	var parentFileId string
 	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
-		strArr := strings.Split(reqPath, "/")
+		strArr2 := strings.Split(reqPath, "/")
 		//如果父目录已经缓存，直接取
-		if v, ok := cache.GoCache.Get("FID_" + strings.Join(strArr[:len(strArr)-1], "/")); ok {
+		if v, ok := cache.GoCache.Get("FID_" + strings.Join(strArr2[:len(strArr2)-1], "/")); ok {
 			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, v.(string))
 			parentFileId = fi.FileId
 			fmt.Println("😊 😊  Cache hit", reqPath[:lastIndex])
@@ -347,6 +347,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 				} else {
 					parentFileId = fi.FileId
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
+					cache.GoCache.Set("FI_"+fi.FileId, fi, -1)
 					fmt.Println("😊 😊  Cache set", strings.Join(strArr, "/"))
 				}
 			} else {
