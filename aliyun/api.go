@@ -285,7 +285,10 @@ func MakeDir(token string, driveId string, name string, parentFileId string) mod
 func GetFileDetail(token string, driveId string, fileId string) model.ListModel {
 	if fileId != "root" {
 		if va, ok := cache.GoCache.Get("FI_" + fileId); ok {
-			return va.(model.ListModel)
+			if va != nil {
+				return va.(model.ListModel)
+			}
+
 		}
 	}
 
