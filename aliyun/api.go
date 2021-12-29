@@ -248,7 +248,7 @@ func WalkFolder(token string, driverId string, paths []string, parentFileId stri
 		if found {
 			//开始递归查询子目录
 			paths = paths[1:]
-			item, list, err = WalkFolder(token, driverId, paths, item.FileId, folderOnly)
+			return WalkFolder(token, driverId, paths, item.FileId, folderOnly)
 		}
 
 	}

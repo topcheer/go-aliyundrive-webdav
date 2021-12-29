@@ -401,19 +401,19 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(pi, model.ListModel{}) || pi.FileId == "root" {
-				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-2], "", true)
+				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-1], "", true)
 				if walkerr != nil {
 					fmt.Println("❌ ❌  parent folder not found, Request path", reqPath)
 					return http.StatusConflict, errors.New("parent folder not found")
 				} else {
-					fmt.Println("-----Found parent", p.Name, "Requested", strArr[:len(strArr)-2])
+					fmt.Println("-----Found parent", p.Name, "Requested", strArr[:len(strArr)-1])
 				}
 				pi = p
 				for _, item := range chd.Items {
 					if len(strArr) == 2 {
 						cache.GoCache.Set("FID_"+strArr[0]+"/"+item.Name, item.FileId, -1)
 					} else {
-						cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-2], "/")+"/"+item.Name, item.FileId, -1)
+						cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-1], "/")+"/"+item.Name, item.FileId, -1)
 					}
 					cache.GoCache.Set("FI_"+item.FileId, item, -1)
 					if item.Name == strArr[len(strArr)-1] {
@@ -424,7 +424,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 				if len(strArr) == 2 {
 					cache.GoCache.Set("FID_"+strArr[0], p.FileId, -1)
 				} else {
-					cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-2], "/"), p.FileId, -1)
+					cache.GoCache.Set("FID_"+strings.Join(strArr[:len(strArr)-1], "/"), p.FileId, -1)
 				}
 
 				cache.GoCache.Set("FI_"+p.FileId, p, -1)
