@@ -431,7 +431,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			} else {
 				fmt.Println("-----Found parent", pi.Name, "Requested", strArr[:len(strArr)-1])
 			}
-
+			fmt.Println(pi)
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
@@ -445,7 +445,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 				l.Items = append(l.Items, aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, dir.FileId))
 				cache.GoCache.SetDefault(parentFileId, l)
 			}
-			fmt.Println("✅  Directory created", reqPath, dir.ParentFileId, dir.FileId)
+			fmt.Println("✅  Directory created", reqPath, dir.ParentFileId, parentFileId)
 		} else {
 			fmt.Println("❌  Create Directory Failed", reqPath)
 			return http.StatusConflict, errors.New("create directory failed: " + reqPath)
