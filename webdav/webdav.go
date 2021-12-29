@@ -351,7 +351,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 					fmt.Println("😊 😊  Cache set", strings.Join(strArr, "/"))
 				}
 			} else {
-				fmt.Println("🔥  Error: can't find parent folder", reqPath)
+				fmt.Println("🔥  Error: can't find parent folder", reqPath, walkerr)
 				return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 			}
 		}
@@ -389,23 +389,27 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 		parentFileId := "root"
 		var name string = reqPath
 		//var fi model.ListModel
-		index := strings.LastIndex(reqPath[0:len(reqPath)], "/")
+		index := strings.LastIndex(reqPath, "/")
 		if index > -1 {
 			strArr := strings.Split(reqPath, "/")
 			//try to get parent folder detail
 			pi := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(pi, model.ListModel{}) {
-				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
-				return http.StatusConflict, errors.New("parent folder does not exist")
+				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-2], "", true)
+				if walkerr != nil {
+					fmt.Println("❌ ❌  parent folder not found, Request path", reqPath)
+					return http.StatusConflict, errors.New("parent folder not found")
+				}
+				pi = p
+				for _, item := range chd.Items {
+					if item.Name == strArr[len(strArr)-1] {
+						fmt.Println("❌ ❌  folder already exists, Request path", reqPath)
+						return http.StatusCreated, errors.New("folder already exists")
+					}
+				}
+
 			}
-			if pi.Type == "file" {
-				fmt.Println("❌ ❌  parent need to be a folder, Request path", reqPath)
-				return http.StatusConflict, errors.New("parent need to be a folder")
-			}
-			if len(strArr) > 2 && pi.Name != strArr[len(strArr)-2] {
-				fmt.Println("❌ ❌  parent folder does not exist, Request path", reqPath)
-				return http.StatusConflict, errors.New("parent folder does not exist")
-			}
+
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
