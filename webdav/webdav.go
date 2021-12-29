@@ -418,7 +418,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 					cache.GoCache.Set("FI_"+item.FileId, item, -1)
 					if item.Name == strArr[len(strArr)-1] {
 						fmt.Println("❌ ❌  folder already exists, Request path", reqPath)
-						return http.StatusCreated, errors.New("folder already exists")
+						return http.StatusConflict, errors.New("folder already exists")
 					}
 				}
 				if len(strArr) == 2 {
