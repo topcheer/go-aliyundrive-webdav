@@ -406,7 +406,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 					fmt.Println("❌ ❌  parent folder not found, Request path", reqPath)
 					return http.StatusConflict, errors.New("parent folder not found")
 				} else {
-					fmt.Println("-----Found parent", p.Name, "Requested", strArr[:len(strArr)-1])
+					fmt.Println("💃 💃  Found parent", p.Name, "Requested", strArr[:len(strArr)-1])
 				}
 				pi = p
 				for _, item := range chd.Items {
