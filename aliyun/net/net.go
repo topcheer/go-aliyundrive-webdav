@@ -81,8 +81,8 @@ func Put(url, token string, data []byte) ([]byte, int) {
 	for i := 0; i < 5; i++ {
 		res, err = client.Do(req)
 		var body []byte
-		if err != nil || (res != nil && res.StatusCode != 200) {
-			fmt.Println("❌  Put Error", err, res.StatusCode, res.Status, url)
+		if err != nil {
+			fmt.Println("❌  Put Error", err, url)
 			fmt.Println("🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue

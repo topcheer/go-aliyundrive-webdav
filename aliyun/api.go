@@ -253,7 +253,6 @@ func WalkFolder(token string, driverId string, paths []string, folderOnly bool) 
 			}
 		}
 		if item.Name == path && j == len(paths)-1 {
-
 			list, _ = GetListA(token, driverId, item.FileId, folderOnly)
 			return item, list, nil
 		}
