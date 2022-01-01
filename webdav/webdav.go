@@ -11,6 +11,7 @@ import (
 	"go-aliyun-webdav/aliyun"
 	"go-aliyun-webdav/aliyun/cache"
 	"go-aliyun-webdav/aliyun/model"
+	"go-aliyun-webdav/utils"
 	"io/ioutil"
 	"reflect"
 	"strconv"
@@ -285,7 +286,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 		fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
 		if fi.Name == strArr[len(strArr)-1] {
 			aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
-			fmt.Println("🕺  删除", reqPath)
+			utils.Verbose(utils.VerboseLog, "🕺  删除", reqPath)
 			cache.GoCache.Delete("FID_" + reqPath)
 			cache.GoCache.Delete("FI_" + fi.FileId)
 		} else {
@@ -293,7 +294,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 			if walkerr == nil {
 				if fi.Name == strArr[len(strArr)-1] {
 					aliyun.RemoveTrash(h.Config.Token, h.Config.DriveId, fi.FileId, fi.ParentFileId)
-					fmt.Println("🕺  删除", reqPath)
+					utils.Verbose(utils.VerboseLog, "🕺  删除", reqPath)
 					cache.GoCache.Delete("FID_" + reqPath)
 					cache.GoCache.Delete("FI_" + fi.FileId)
 				}
@@ -307,7 +308,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
-		fmt.Println("❌ ❌ ❌  Already in progress", reqPath)
+		utils.Verbose(utils.VerboseLog, "❌ ❌ ❌  Already in progress", reqPath)
 		return http.StatusCreated, errors.New("Upload in progress")
 	}
 	if err != nil {
@@ -325,16 +326,16 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	var fi model.ListModel
 	var walkerr error
 	var parentFileId string
-	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") {
+	if len(reqPath) > 0 && !strings.HasSuffix(reqPath, "/") && lastIndex != 0 {
 		strArr2 := strings.Split(reqPath, "/")
 		//如果父目录已经缓存，直接取
 		if v, ok := cache.GoCache.Get("FID_" + strings.Join(strArr2[:len(strArr2)-1], "/")); ok {
 			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, v.(string))
 			parentFileId = fi.FileId
-			fmt.Println("😊 😊  Cache hit", reqPath[:lastIndex])
+			utils.Verbose(utils.VerboseLog, "😊 😊  Cache hit", reqPath[:lastIndex])
 		} else {
 			//如果没找到缓存，尝试从root节点遍历，并设置缓存
-			fmt.Println("😭 😭  Cache missing", reqPath[:lastIndex])
+			utils.Verbose(utils.VerboseLog, "😭 😭  Cache missing", reqPath[:lastIndex])
 			strArr := strings.Split(reqPath[:lastIndex], "/")
 			if len(strArr) == 1 {
 				parentFileId = "root"
@@ -342,19 +343,21 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			fi, _, walkerr = aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr, true)
 			if walkerr == nil {
 				if fi.Name != strArr[len(strArr)-1] {
-					fmt.Println("🔥  Error: can't find parent folder", reqPath)
+					utils.Verbose(utils.VerboseLog, "🔥  Error: can't find parent folder", reqPath)
 					return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 				} else {
 					parentFileId = fi.FileId
 					cache.GoCache.Set("FID_"+strings.Join(strArr, "/"), fi.FileId, -1)
 					cache.GoCache.Set("FI_"+fi.FileId, fi, -1)
-					fmt.Println("😊 😊  Cache set", strings.Join(strArr, "/"))
+					utils.Verbose(utils.VerboseLog, "😊 😊  Cache set", strings.Join(strArr, "/"))
 				}
 			} else {
-				fmt.Println("🔥  Error: can't find parent folder", reqPath, walkerr)
+				utils.Verbose(utils.VerboseLog, "🔥  Error: can't find parent folder", reqPath, walkerr)
 				return http.StatusConflict, errors.New("parent folder does not exist,please create first")
 			}
 		}
+	} else {
+		parentFileId = "root"
 	}
 
 	//if r.ContentLength == 0 {
@@ -371,7 +374,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	if fileId != "" {
 		cache.GoCache.Set("FID_"+reqPath, fileId, -1)
 	} else {
-		fmt.Println("❌  Upload failed", reqPath)
+		utils.Verbose(utils.VerboseLog, "❌  Upload failed", reqPath)
 		return http.StatusBadRequest, errors.New("Upload failed")
 	}
 	return http.StatusCreated, nil
@@ -403,10 +406,10 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 			if reflect.DeepEqual(pi, model.ListModel{}) || pi.FileId == "root" {
 				p, chd, walkerr := aliyun.WalkFolder(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-1], true)
 				if walkerr != nil {
-					fmt.Println("❌ ❌  parent folder not found, Request path", reqPath)
+					utils.Verbose(utils.VerboseLog, "❌ ❌  parent folder not found, Request path", reqPath)
 					return http.StatusConflict, errors.New("parent folder not found")
 				} else {
-					fmt.Println("💃 💃  Found parent", p.Name, "Requested", strArr[:len(strArr)-1])
+					utils.Verbose(utils.VerboseLog, "💃 💃  Found parent", p.Name, "Requested", strArr[:len(strArr)-1])
 				}
 				pi = p
 				for _, item := range chd.Items {
@@ -417,7 +420,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 					}
 					cache.GoCache.Set("FI_"+item.FileId, item, -1)
 					if item.Name == strArr[len(strArr)-1] {
-						fmt.Println("❌ ❌  folder already exists, Request path", reqPath)
+						utils.Verbose(utils.VerboseLog, "❌ ❌  folder already exists, Request path", reqPath)
 						return http.StatusContinue, errors.New("folder already exists")
 					}
 				}
@@ -429,13 +432,13 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 
 				cache.GoCache.Set("FI_"+p.FileId, p, -1)
 			} else {
-				fmt.Println("-----Found parent", pi.Name, "Requested", strArr[:len(strArr)-1])
+				utils.Verbose(utils.VerboseLog, "-----Found parent", pi.Name, "Requested", strArr[:len(strArr)-1])
 			}
-			fmt.Println(pi)
+			utils.Verbose(utils.VerboseLog, pi)
 			parentFileId = pi.FileId
 			name = reqPath[index+1:]
 		}
-		fmt.Println("📁  Creating Directory", reqPath, parentFileId)
+		utils.Verbose(utils.VerboseLog, "📁  Creating Directory", reqPath, parentFileId)
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
 		if (dir != model.ListModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
@@ -445,9 +448,9 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 				l.Items = append(l.Items, aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, dir.FileId))
 				cache.GoCache.SetDefault(parentFileId, l)
 			}
-			fmt.Println("✅  Directory created", reqPath, dir.ParentFileId, parentFileId)
+			utils.Verbose(utils.VerboseLog, "✅  Directory created", reqPath, dir.ParentFileId, parentFileId)
 		} else {
-			fmt.Println("❌  Create Directory Failed", reqPath)
+			utils.Verbose(utils.VerboseLog, "❌  Create Directory Failed", reqPath)
 			return http.StatusConflict, errors.New("create directory failed: " + reqPath)
 		}
 	}
@@ -566,7 +569,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 	ctx := r.Context()
 
 	if r.Method == "MOVE" {
-		//fmt.Println("move")
+		//utils.Verbose(utils.VerboseLog,"move")
 	}
 
 	if r.Method == "COPY" {
@@ -701,7 +704,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 			parent := aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getFileId(strArr))
 			if reflect.DeepEqual(parent, model.ListModel{}) || (len(strArr) > 2 && parent.Name != strArr[len(strArr)-2]) {
 				parent, _, _ = aliyun.Walk(h.Config.Token, h.Config.DriveId, strArr[:len(strArr)-1])
-				fmt.Println("❌  父目录不存在", reqPath)
+				utils.Verbose(utils.VerboseLog, "❌  父目录不存在", reqPath)
 				return http.StatusConflict, errors.New("parent folder doesn't exist")
 			}
 			fi = aliyun.GetFileDetail(h.Config.Token, h.Config.DriveId, getParentFileId(strArr))
@@ -760,12 +763,12 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request) (status
 			</D:multistatus>`))
 			return 0, nil
 		}
-		//fmt.Println(string(available))
+		//utils.Verbose(utils.VerboseLog,string(available))
 	}
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	var list model.FileListModel
 	var fi model.ListModel
-	//fmt.Println(reqPath)
+	//utils.Verbose(utils.VerboseLog,reqPath)
 	var unfindListErr error
 	var walkErr error
 	//定位当前文件或文件夹位置,假设同级目录下无重名文件或文件夹

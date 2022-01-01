@@ -3,11 +3,11 @@ package aliyun
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/tidwall/gjson"
 	"go-aliyun-webdav/aliyun/cache"
 	"go-aliyun-webdav/aliyun/model"
 	"go-aliyun-webdav/aliyun/net"
+	"go-aliyun-webdav/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -57,7 +57,7 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 
 	data, err := json.Marshal(postData)
 	if err != nil {
-		fmt.Println("获取列表转义数据失败", err)
+		utils.Verbose(utils.VerboseLog, "获取列表转义数据失败", err)
 		return model.FileListModel{}, err
 	}
 
@@ -65,7 +65,7 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 		body := net.Post(model.APILISTURL, token, data)
 		e := json.Unmarshal(body, &list)
 		if e != nil {
-			fmt.Println("❌  GetList Failed", e, string(body), "retry in 5 seconds")
+			utils.Verbose(utils.VerboseLog, "❌  GetList Failed", e, string(body), "retry in 5 seconds")
 			time.Sleep(5 * time.Second)
 		} else {
 			break
@@ -73,7 +73,7 @@ func GetListA(token string, driveId string, parentFileId string, folderOnly bool
 	}
 
 	if list.NextMarker != "" {
-		//fmt.Println("Next Page Marker: " + list.NextMarker)
+		//utils.Verbose(utils.VerboseLog,"Next Page Marker: " + list.NextMarker)
 		var newList, _ = GetListA(token, driveId, parentFileId, folderOnly, list.NextMarker)
 		list.Items = append(list.Items, newList.Items...)
 		list.NextMarker = newList.NextMarker
@@ -107,7 +107,7 @@ func GetFilePath(token string, driveId string, parentFileId string, fileId strin
 
 	data, err := json.Marshal(postData)
 	if err != nil {
-		fmt.Println("获取列表转义数据失败", err)
+		utils.Verbose(utils.VerboseLog, "获取列表转义数据失败", err)
 		return "/", err
 	}
 
@@ -115,7 +115,7 @@ func GetFilePath(token string, driveId string, parentFileId string, fileId strin
 
 	e := json.Unmarshal(body, &list)
 	if e != nil {
-		fmt.Println("❌   GetFilePath Failed", e, string(body))
+		utils.Verbose(utils.VerboseLog, "❌   GetFilePath Failed", e, string(body))
 	}
 	minNum := 0
 	if typeStr == "folder" {
@@ -153,14 +153,14 @@ func RefreshToken(refreshToken string) model.RefreshTokenModel {
 	var refresh model.RefreshTokenModel
 
 	if len(rs) <= 0 {
-		fmt.Println("刷新token失败")
+		utils.Verbose(utils.VerboseLog, "刷新token失败")
 		return refresh
 	}
 
 	err := json.Unmarshal(rs, &refresh)
 	if err != nil {
-		fmt.Println("刷新token失败,失败信息", err)
-		fmt.Println("刷新token返回信息", refresh)
+		utils.Verbose(utils.VerboseLog, "刷新token失败,失败信息", err)
+		utils.Verbose(utils.VerboseLog, "刷新token返回信息", refresh)
 		return refresh
 	}
 
@@ -173,13 +173,13 @@ func RefreshToken(refreshToken string) model.RefreshTokenModel {
 		return refresh
 	}
 	if err != nil {
-		fmt.Println("更新token文件失败,失败信息", err)
+		utils.Verbose(utils.VerboseLog, "更新token文件失败,失败信息", err)
 		return refresh
 	}
 
 	err = ioutil.WriteFile(path, []byte(refresh.RefreshToken), 0600)
 	if err != nil {
-		fmt.Println("更新token文件失败,失败信息", err)
+		utils.Verbose(utils.VerboseLog, "更新token文件失败,失败信息", err)
 	}
 
 	return refresh
@@ -199,10 +199,10 @@ func ReName(token string, driveId string, newName string, fileId string) bool {
 	var m model.ListModel
 	e := json.Unmarshal(rs, &m)
 	if e != nil {
-		fmt.Println(e)
+		utils.Verbose(utils.VerboseLog, e)
 	}
 	cache.GoCache.Delete(m.ParentFileId)
-	//fmt.Println(string(rs))
+	//utils.Verbose(utils.VerboseLog,string(rs))
 	return true
 }
 
@@ -272,7 +272,7 @@ func Search(token string, driveId string, name string, parentFileId string, Type
 	body := net.Post(model.APISEARCH, token, []byte(`{"drive_id":"`+driveId+`","query":"parent_file_id = \"`+parentFileId+`\" and (name = \"`+name+`\") and (type=\"`+Type+`\")","order_by":"name ASC","limit":200}`))
 	e := json.Unmarshal(body, &list)
 	if e != nil {
-		fmt.Println(e)
+		utils.Verbose(utils.VerboseLog, e)
 	}
 	if len(list.Items) > 0 {
 		cache.GoCache.Set("SearchResult_"+parentFileId+name, list, -1)
@@ -306,7 +306,7 @@ func GetFileDetail(token string, driveId string, fileId string) model.ListModel 
 	var m model.ListModel
 	e := json.Unmarshal(rs, &m)
 	if e != nil {
-		fmt.Println("❌   GetFileDetail Failed", e, string(rs))
+		utils.Verbose(utils.VerboseLog, "❌   GetFileDetail Failed", e, string(rs))
 	} else {
 		cache.GoCache.Set("FI_"+fileId, e, -1)
 	}
@@ -343,7 +343,7 @@ func UpdateFileFolder(token string, driveId string, fileName string, parentFileI
 	createData := `{"drive_id": "` + driveId + `","parent_file_id": "` + parentFileId + `","name": "` + fileName + `","check_name_mode": "refuse","type": "folder"}`
 	net.Post(model.APIFILEUPLOAD, token, []byte(createData))
 	// rs := net.Post(model.APIFILEUPLOAD, token, []byte(createData))
-	// fmt.Println(string(rs))
+	// utils.Verbose(utils.VerboseLog,string(rs))
 	//正确返回占星显示
 	//	{"parent_file_id":"60794ad941ee2d8d24f843b7a0ffd80279927dfc","type":"folder","file_id":"613caeb4d5b1ba9fb4604d4aa5aef2b408ab3121","domain_id":"bj29","drive_id":"1662258","file_name":"1SDSDSD.png","encrypt_mode":"none"}
 	//
@@ -398,7 +398,7 @@ func UpdateFileFile(token string, driveId string, fileName string, parentFileId 
 	}
 	urlArr := gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
 	if len(urlArr) == 0 {
-		fmt.Println("❌  创建文件出错", string(rs))
+		utils.Verbose(utils.VerboseLog, "❌  创建文件出错", string(rs))
 	}
 	return urlArr, gjson.GetBytes(rs, "upload_id").Str, gjson.GetBytes(rs, "file_id").Str, false
 
@@ -410,7 +410,7 @@ func UploadFile(url string, token string, data []byte) bool {
 		if len(rs) == 0 && status == 0 {
 			return true
 		} else {
-			fmt.Println("❌  Upload Error: ", string(rs), " Retrying in 5 seconds")
+			utils.Verbose(utils.VerboseLog, "❌  Upload Error: ", string(rs), " Retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
 		}
 	}
@@ -421,7 +421,7 @@ func UploadFileComplete(token string, driveId string, uploadId string, fileId st
 	createData := `{"drive_id": "` + driveId + `","file_id": "` + fileId + `","upload_id": "` + uploadId + `"}`
 
 	rs := net.Post(model.APIFILECOMPLETE, token, []byte(createData))
-	fmt.Println("⬆️  Upload Result:", gjson.GetBytes(rs, "file_id").Str, gjson.GetBytes(rs, "name").Str, gjson.GetBytes(rs, "size").Str)
+	utils.Verbose(utils.VerboseLog, "⬆️  Upload Result:", gjson.GetBytes(rs, "file_id").Str, gjson.GetBytes(rs, "name").Str, gjson.GetBytes(rs, "size").Str)
 	cache.GoCache.Delete(parentId)
 
 	return false
@@ -457,6 +457,6 @@ func GetUploadUrls(token string, driveId string, fileId string, uploadId string,
 	partStr += "]"
 	uploadRequest := `{"drive_id":"` + driveId + `","part_info_list":` + partStr + `,"file_id":"` + fileId + `","upload_id":"` + uploadId + `"}`
 	rs := net.Post(model.APIFILEUPLOADURL, token, []byte(uploadRequest))
-	//fmt.Println("ℹ️  GetUploadUrls", string(rs))
+	//utils.Verbose(utils.VerboseLog,"ℹ️  GetUploadUrls", string(rs))
 	return gjson.GetBytes(rs, "part_info_list.#.upload_url").Array()
 }

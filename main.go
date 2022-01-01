@@ -7,6 +7,7 @@ import (
 	"go-aliyun-webdav/aliyun"
 	"go-aliyun-webdav/aliyun/cache"
 	"go-aliyun-webdav/aliyun/model"
+	"go-aliyun-webdav/utils"
 	"go-aliyun-webdav/webdav"
 	"reflect"
 
@@ -39,6 +40,7 @@ func main() {
 	var versin *bool
 	var log *bool
 	var check *string
+	var verbose *bool
 
 	//
 	port = flag.String("port", "8085", "默认8085")
@@ -49,7 +51,7 @@ func main() {
 	log = flag.Bool("v", false, "是否显示日志(默认不显示)")
 	//log = flag.Bool("v", true, "是否显示日志(默认不显示)")
 	refreshToken = flag.String("rt", "", "refresh_token")
-
+	verbose = flag.Bool("verbose", false, "是否打印详细日志")
 	check = flag.String("crt", "", "检查refreshToken是否过期")
 
 	flag.Parse()
@@ -104,7 +106,9 @@ func main() {
 		rtfile.Seek(0, 0)
 		rtfile.Write([]byte(refreshResult.RefreshToken))
 	}
-
+	if *verbose {
+		utils.VerboseLog = true
+	}
 	config := model.Config{
 		RefreshToken: refreshResult.RefreshToken,
 		Token:        refreshResult.AccessToken,
@@ -157,6 +161,7 @@ func main() {
 			fmt.Println(req.URL)
 			fmt.Println(req.Method)
 		}
+
 		fs.ServeHTTP(w, req)
 	})
 	go refresh(fs, rtfile)
@@ -177,9 +182,11 @@ func refresh(fs *webdav.Handler, tokenFile *os.File) {
 				DriveId:      refreshResult.DefaultDriveId,
 				ExpireTime:   time.Now().Unix() + refreshResult.ExpiresIn,
 			}
+			utils.AccessToken = refreshResult.AccessToken
+			utils.DriveId = refreshResult.DefaultDriveId
 			tokenFile.Seek(0, 0)
 			tokenFile.Write([]byte(refreshResult.RefreshToken))
-			fmt.Println("💻  Refresh Token")
+			utils.Verbose(utils.VerboseLog, "💻  Refresh Token")
 		}
 	}
 }

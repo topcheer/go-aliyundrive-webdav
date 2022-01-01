@@ -2,7 +2,7 @@ package net
 
 import (
 	"bytes"
-	"fmt"
+	"go-aliyun-webdav/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +26,7 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
 
 	if err != nil {
-		fmt.Println(err)
+		utils.Verbose(utils.VerboseLog, err)
 		return nil, -1
 	}
 	req.Header.Add("accept", "application/json, text/plain, */*")
@@ -43,25 +43,25 @@ func PostExpectStatus(url, token string, data []byte) ([]byte, int) {
 		if err != nil {
 			if res != nil && res.Body != nil {
 				r, _ := io.ReadAll(res.Body)
-				fmt.Println("❌  Post Error", err, url, res.StatusCode, res.Status, string(r))
+				utils.Verbose(utils.VerboseLog, "❌  Post Error", err, url, res.StatusCode, res.Status, string(r))
 			} else {
-				fmt.Println("❌  Post Error", err, url)
+				utils.Verbose(utils.VerboseLog, "❌  Post Error", err, url)
 			}
 
-			fmt.Println("🐛  Retrying...in 5 seconds")
+			utils.Verbose(utils.VerboseLog, "🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-				fmt.Println("🙅  ", err)
+				utils.Verbose(utils.VerboseLog, "🙅  ", err)
 			}
 		}(res.Body)
 
 		body, err = ioutil.ReadAll(res.Body)
 		if err != nil {
-			fmt.Println(err)
+			utils.Verbose(utils.VerboseLog, err)
 			return nil, -1
 		}
 		return body, res.StatusCode
@@ -74,7 +74,7 @@ func Put(url, token string, data []byte) ([]byte, int) {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
 
 	if err != nil {
-		fmt.Println(err)
+		utils.Verbose(utils.VerboseLog, err)
 		return nil, -1
 	}
 	var res *http.Response
@@ -82,26 +82,26 @@ func Put(url, token string, data []byte) ([]byte, int) {
 		res, err = client.Do(req)
 		var body []byte
 		if err != nil {
-			fmt.Println("❌  Put Error", err, url)
-			fmt.Println("🐛  Retrying...in 5 seconds")
+			utils.Verbose(utils.VerboseLog, "❌  Put Error", err, url)
+			utils.Verbose(utils.VerboseLog, "🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-				fmt.Println("🙅  ", err)
+				utils.Verbose(utils.VerboseLog, "🙅  ", err)
 			}
 		}(res.Body)
 
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			fmt.Println(err)
+			utils.Verbose(utils.VerboseLog, err)
 			return nil, -1
 		}
 		return body, 0
 	}
-	fmt.Println("💀  Fail to PUT", url)
+	utils.Verbose(utils.VerboseLog, "💀  Fail to PUT", url)
 	return nil, -1
 }
 func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange string) bool {
@@ -112,7 +112,7 @@ func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange stri
 	req, err := http.NewRequest(method, url, nil)
 
 	if err != nil {
-		fmt.Println(err)
+		utils.Verbose(utils.VerboseLog, err)
 		return false
 	}
 	//req.Header.Add("accept", "application/json, text/plain, */*")
@@ -130,10 +130,10 @@ func Get(w http.ResponseWriter, url, token string, rangeStr string, ifRange stri
 		if err != nil {
 			if res != nil && res.Body != nil {
 				body, _ = io.ReadAll(res.Body)
-				fmt.Println("❌  Get Error", err, url, string(body), res.StatusCode, res.Status)
+				utils.Verbose(utils.VerboseLog, "❌  Get Error", err, url, string(body), res.StatusCode, res.Status)
 			}
-			fmt.Println("❌  Get Error", err)
-			fmt.Println("🐛  Retrying...in 5 seconds")
+			utils.Verbose(utils.VerboseLog, "❌  Get Error", err)
+			utils.Verbose(utils.VerboseLog, "🐛  Retrying...in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -160,7 +160,7 @@ func GetProxy(w http.ResponseWriter, req *http.Request, urlStr, token string) []
 	//	req, err := http.NewRequest(method, url, nil)
 	//
 	//	if err != nil {
-	//		fmt.Println(err)
+	//		utils.Verbose(utils.VerboseLog,err)
 	//		return nil
 	//	}
 	//	//req.Header.Add("accept", "application/json, text/plain, */*")
@@ -172,17 +172,17 @@ func GetProxy(w http.ResponseWriter, req *http.Request, urlStr, token string) []
 	//
 	//	res, err := client.Do(req)
 	//	if err != nil {
-	//		fmt.Println(err)
+	//		utils.Verbose(utils.VerboseLog,err)
 	//		return nil
 	//	}
 	//	defer res.Body.Close()
 	//
 	//	body, err := ioutil.ReadAll(res.Body)
 	//	if len(body) == 0 {
-	//		fmt.Println("获取详情报错")
+	//		utils.Verbose(utils.VerboseLog,"获取详情报错")
 	//	}
 	//	if err != nil {
-	//		fmt.Println(err)
+	//		utils.Verbose(utils.VerboseLog,err)
 	//		return nil
 	//	}
 	//	return body
