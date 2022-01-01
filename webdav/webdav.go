@@ -307,8 +307,12 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
-	if _, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
-		utils.Verbose(utils.VerboseLog, "❌ ❌ ❌  Already in progress", reqPath)
+	if cnt, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
+		if cnt.(int64)%10 == 0 {
+			//print warning every 10 attempts
+			utils.Verbose(utils.VerboseLog, "❌ ❌ ❌  Already in progress", reqPath)
+		}
+		cache.GoCache.Set("IN_PROGRESS"+reqPath, cnt.(int64)+1, -1)
 		return http.StatusCreated, errors.New("Upload in progress")
 	}
 	if err != nil {
@@ -368,7 +372,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			cache.GoCache.Delete("IN_PROGRESS" + rp)
 		}
 	}(reqPath)
-	cache.GoCache.Set("IN_PROGRESS"+reqPath, fileName, -1)
+	cache.GoCache.Set("IN_PROGRESS"+reqPath, 0, -1)
 	fileId := aliyun.ContentHandle(r, h.Config.Token, h.Config.DriveId, parentFileId, fileName)
 	cache.GoCache.Delete("IN_PROGRESS" + reqPath)
 	if fileId != "" {
