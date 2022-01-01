@@ -308,11 +308,11 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path)
 	if cnt, ok := cache.GoCache.Get("IN_PROGRESS" + reqPath); ok {
-		if cnt.(int64)%10 == 0 {
+		if cnt.(int)%10 == 0 {
 			//print warning every 10 attempts
 			utils.Verbose(utils.VerboseLog, "❌ ❌ ❌  Already in progress", reqPath)
 		}
-		cache.GoCache.Set("IN_PROGRESS"+reqPath, cnt.(int64)+1, -1)
+		cache.GoCache.Set("IN_PROGRESS"+reqPath, cnt.(int)+1, -1)
 		return http.StatusProcessing, errors.New("Upload in progress")
 	}
 	if err != nil {
