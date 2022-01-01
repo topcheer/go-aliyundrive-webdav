@@ -313,7 +313,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 			utils.Verbose(utils.VerboseLog, "❌ ❌ ❌  Already in progress", reqPath)
 		}
 		cache.GoCache.Set("IN_PROGRESS"+reqPath, cnt.(int64)+1, -1)
-		return http.StatusCreated, errors.New("Upload in progress")
+		return http.StatusProcessing, errors.New("Upload in progress")
 	}
 	if err != nil {
 		return status, err
