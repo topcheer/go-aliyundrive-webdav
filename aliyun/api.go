@@ -279,9 +279,9 @@ func Search(token string, driveId string, name string, parentFileId string, Type
 	}
 	return list
 }
-func MakeDir(token string, driveId string, name string, parentFileId string) model.ListModel {
+func MakeDir(token string, driveId string, name string, parentFileId string) model.CreateModel {
 	rs := net.Post(model.APIMKDIR, token, []byte(`{"drive_id":"`+driveId+`","parent_file_id":"`+parentFileId+`","name":"`+name+`","check_name_mode":"refuse","type":"folder"}`))
-	var fi model.ListModel
+	var fi model.CreateModel
 	err := json.Unmarshal(rs, &fi)
 	if err == nil {
 		if fi.Name == name {

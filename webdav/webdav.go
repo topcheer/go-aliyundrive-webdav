@@ -444,7 +444,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 		}
 		utils.Verbose(utils.VerboseLog, "📁  Creating Directory", reqPath, parentFileId)
 		dir := aliyun.MakeDir(h.Config.Token, h.Config.DriveId, name, parentFileId)
-		if (dir != model.ListModel{}) {
+		if (dir != model.CreateModel{}) {
 			cache.GoCache.Set("FID_"+reqPath, dir.FileId, -1)
 			cache.GoCache.Set("FI"+dir.FileId, dir, -1)
 			if va, ok := cache.GoCache.Get(parentFileId); ok {

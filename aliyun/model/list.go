@@ -24,6 +24,14 @@ type ListModel struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+type CreateModel struct {
+	DriveId      string `json:"drive_id"`
+	FileId       string `json:"file_id"`
+	Name         string `json:"file_name"`
+	Type         string `json:"type"`
+	ParentFileId string `json:"parent_file_id"`
+}
+
 type FileListModel struct {
 	Items      []ListModel `json:"items"`
 	NextMarker string      `json:"next_marker"`
