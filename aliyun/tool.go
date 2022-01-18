@@ -215,7 +215,8 @@ func ContentHandle(r *http.Request, token string, driveId string, parentId strin
 				utils.Verbose(utils.VerboseLog, "  💻  Renew Upload URL Done, Total Parts", len(uploadUrl))
 			}
 		}
-		if ok := UploadFile(uploadUrl[i].Str, token, dataByte); !ok {
+		//使用全局token，传入的token很有可能已经过期
+		if ok := UploadFile(uploadUrl[i].Str, utils.AccessToken, dataByte); !ok {
 			utils.Verbose(utils.VerboseLog, "❌  Upload part failed ", r.URL.Path, "Part#", i+1, " 😜   Cancel upload")
 			return ""
 		}
